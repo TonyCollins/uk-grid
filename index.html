@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixed Live National Grid Dashboard</title>
+    <!-- Include free Chart.js library for the pie chart -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0d0e12; color: #e4e6eb; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 550px; background: #16181f; padding: 25px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); border: 1px solid #2a2d3a; }
+        h1 { font-size: 24px; margin-bottom: 5px; color: #ffffff; text-align: center; }
+        .subtitle { font-size: 13px; color: #787f95; text-align: center; margin-bottom: 25px; }
+        .chart-box { position: relative; margin: 20px auto; height: 260px; width: 260px; }
+        .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; text-align: center; }
+        .card { background: #1f222e; padding: 15px; border-radius: 12px; border: 1px solid #2d3142; }
+        .card-label { font-size: 11px; color: #9da4b7; text-transform: uppercase; margin-bottom: 5px; }
+        .card-value { font-size: 18px; font-weight: bold; color: #00ffaa; }
+        .snapshot-section { background: #1f222e; padding: 15px; border-radius: 12px; border: 1px solid #2d3142; margin-top: 20px; }
+        .snapshot-title { font-size: 14px; font-weight: bold; color: #fff; margin-bottom: 10px; border-bottom: 1px solid #2d3142; padding-bottom: 5px; }
+        .snapshot-log { font-family: monospace; font-size: 12px; color: #a2aabf; max-height: 120px; overflow-y: auto; padding: 5px; background: #12131a; border-radius: 6px; }
+        .log-line { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #1c1e29; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>National Grid: Live Mix & Snapshot</h1>
+    <div class="subtitle">Live automatic updates & 24hr log</div>
+
+    <div class="grid-stats">
+        <div class="card">
+            <div class="card-label">Carbon Intensity</div>
+            <div id="carbon-val" class="card-value">-- g/kWh</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Grid Update Status</div>
+            <div id="sync-status" class="card-value" style="color: #ffaa00;">Syncing...</div>
+        </div>
+    </div>
+
+    <!-- The Pie Chart Container -->
+    <div class="chart-box">
+        <canvas id="energyPieChart"></canvas>
+    </div>
+
+    <!-- The 24 Hourly Snapshot Tracker -->
+    <div class="snapshot-section">
+        <div class="snapshot-title">24-Hour Snapshot History Log</div>
+        <div class="snapshot-log" id="snapshot-log-container">
+            <div style="color: #555;">Waiting for next top-of-the-hour snapshot entry...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let energyChart = null;
+
+    // Standard color scheme for national fuel sources
+    const fuelColors = {
+        wind: '#00ccff', solar: '#ffcc00', nuclear: '#ff3366', gas: '#ff6600', 
+        coal: '#555555', hydro: '#3366ff', biomass: '#996633', imports: '#aa33ff', other: '#777777'
+    };
+
+    // Initialize an empty pie chart on page load
+    function initChart() {
+        const ctx = document.getElementById('energyPieChart').getContext('2d');
+        energyChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Loading'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#252836'],
+                    borderWidth: 1,
+                    borderColor: '#16181f'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // Main functional live data feed action
+    async function updateDashboard() {
+        try {
+            document.getElementById('sync-status').innerText = "Updating...";
+            document.getElementById('sync-status').style.color = "#ffaa00";
+
+            // Grab live dataset directly from official free API endpoints
+            const intensityRes = await fetch('https://carbonintensity.org.uk');
+            const generationRes = await fetch('https://carbonintensity.org.uk');
+            
+            const intensityData = await intensityRes.json();
+            const genData = await generationRes.json();
+
+            // 1. Refresh textual stats labels
+            const currentIntensity = intensityData.data[0].intensity.actual;
+            document.getElementById('carbon-val').innerText = currentIntensity + " gCO₂/kWh";
+            
+            // 2. Extract energy types array for our pie chart mapping
+            const mixArray = genData.data.generationmix;
+            const labels = [];
+            const values = [];
+            const colors = [];
+
+            mixArray.forEach(item => {
+                labels.push(item.fuel.toUpperCase() + " (" + item.perc + "%)");
+                values.push(item.perc);
+                colors.push(fuelColors[item.fuel] || fuelColors.other);
+            });
+
+            // 3. Smoothly update Chart JS values dynamically
+            energyChart.data.labels = labels;
+            energyChart.data.datasets[0].data = values;
+            energyChart.data.datasets[0].backgroundColor = colors;
+            energyChart.update();
+
+            // Update sync timer tracker status text box
+            const now = new Date();
+            document.getElementById('sync-status').innerText = "Live: " + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('sync-status').style.color = "#00ffaa";
+
+            // Trigger a snapshot logger run safely check
+            logSnapshotRecord(currentIntensity, mixArray);
+
+        } catch (err) {
+            document.getElementById('sync-status').innerText = "Feed Offline";
+            document.getElementById('sync-status').style.color = "#ff4444";
+            console.error(err);
+        }
+    }
+
+    // 24 Hour Snapshot Logic
+    function logSnapshotRecord(intensity, mix) {
+        const now = new Date();
+        const timestamp = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const windItem = mix.find(f => f.fuel === 'wind') || {perc: 0};
+        const solarItem = mix.find(f => f.fuel === 'solar') || {perc: 0};
+        const gasItem = mix.find(f => f.fuel === 'gas') || {perc: 0};
+
+        let storageKey = "uk_grid_snapshot_history";
+        let history = JSON.parse(localStorage.getItem(storageKey)) || [];
+
+        const currentHourString = now.toDateString() + " " + now.getHours();
+        if (history.length > 0 && history[0].hourId === currentHourString) {
+            // Already captured this hour slot, just update view
+            renderLogContainer(history);
+            return; 
+        }
+
+        const snapshotEntry = {
+            hourId: currentHourString,
+            time: timestamp,
+            co2: intensity,
+            summary: `Wind: ${windItem.perc}% | Solar: ${solarItem.perc}% | Gas: ${gasItem.perc}%`
+        };
+
+        history.unshift(snapshotEntry);
+
+        if(history.length > 24) history.pop();
+        localStorage.setItem(storageKey, JSON.stringify(history));
+
+        renderLogContainer(history);
+    }
+
+    function renderLogContainer(history) {
+        const logContainer = document.getElementById('snapshot-log-container');
+        logContainer.innerHTML = '';
+        
+        history.forEach(log => {
+            const row = document.createElement('div');
+            row.className = 'log-line';
+            row.innerHTML = `
+                <span style="color:#00ffaa;">[${log.time}]</span>
+                <span>${log.summary}</span>
+                <span style="color:#888;">${log.co2}g</span>
+            `;
+            logContainer.appendChild(row);
+        });
+    }
+
+    // Core execution launcher logic loop cycles
+    initChart();
+    updateDashboard();
+
+    // Re-check and run live API lookups automatically every 5 minutes safely 
+    setInterval(updateDashboard, 300000);
+</script>
+
+</body>
+</html>
