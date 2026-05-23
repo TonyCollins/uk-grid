@@ -4,411 +4,323 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UK National Grid — Live Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  :root {
-    --bg: #0a0e12;
-    --surface: #111820;
-    --border: #1e2d3d;
-    --accent: #00e5a0;
-    --accent2: #f0a500;
-    --accent3: #e05252;
-    --text: #c8d8e8;
-    --muted: #4a6070;
-    --mono: 'Share Tech Mono', monospace;
-    --sans: 'Barlow', sans-serif;
-  }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f4f6f9;
+    color: #1a1a2e;
     min-height: 100vh;
-    padding: 0;
   }
 
-  /* Header */
   header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 24px;
+    background: #fff;
+    border-bottom: 2px solid #e8ecf0;
+    padding: 16px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 10;
   }
 
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .logo-icon {
-    width: 32px; height: 32px;
-    background: var(--accent);
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    animation: pulse 3s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-
-  .logo h1 {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #fff;
-  }
-
-  .logo p {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-family: var(--mono);
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .live-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--accent);
-  }
-
-  .live-dot {
-    width: 8px; height: 8px;
-    background: var(--accent);
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-dot {
+    width: 14px; height: 14px;
+    background: #00c896;
     border-radius: 50%;
-    animation: blink 1.5s ease-in-out infinite;
+    animation: blink 1.5s infinite;
   }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
+  .logo h1 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .logo p  { font-size: 11px; color: #888; }
 
-  #last-update {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-  }
+  #last-update { font-size: 11px; color: #999; }
 
-  /* Main layout */
-  main {
-    padding: 24px;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
+  main { max-width: 580px; margin: 0 auto; padding: 20px 16px; }
 
-  /* Top stats row */
+  /* STAT CARDS */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--accent);
-  }
-
-  .stat-card.amber::before { background: var(--accent2); }
-  .stat-card.red::before { background: var(--accent3); }
-
-  .stat-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--muted);
-    margin-bottom: 10px;
-    font-family: var(--mono);
-  }
-
-  .stat-value {
-    font-family: var(--mono);
-    font-size: 36px;
-    color: #fff;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .stat-unit {
-    font-size: 14px;
-    color: var(--muted);
-    font-family: var(--mono);
-  }
-
-  .stat-sub {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 8px;
-    font-family: var(--mono);
-  }
-
-  .intensity-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 2px;
-    font-size: 11px;
-    font-family: var(--mono);
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-top: 8px;
-  }
-
-  /* Generation mix */
-  .section-title {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--muted);
-    font-family: var(--mono);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  .gen-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
-
-  .gen-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e8ecf0;
   }
-
-  .gen-name {
-    font-size: 11px;
+  .card-label {
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: var(--muted);
-    font-family: var(--mono);
+    color: #999;
+    margin-bottom: 8px;
   }
-
-  .gen-pct {
-    font-family: var(--mono);
-    font-size: 26px;
-    color: #fff;
+  .card-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a2e;
     line-height: 1;
   }
-
-  .gen-bar-bg {
-    height: 3px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .gen-bar {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.8s ease;
-  }
-
-  .gen-mw {
-    font-size: 11px;
-    color: var(--muted);
-    font-family: var(--mono);
-  }
-
-  /* 24hr history */
-  .history-table {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 24px;
-  }
-
-  .history-table table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: var(--mono);
-    font-size: 13px;
-  }
-
-  .history-table th {
-    background: rgba(255,255,255,0.03);
-    padding: 12px 16px;
-    text-align: left;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-    font-weight: 400;
-  }
-
-  .history-table td {
-    padding: 11px 16px;
-    border-bottom: 1px solid rgba(30,45,61,0.5);
-    color: var(--text);
-  }
-
-  .history-table tr:last-child td { border-bottom: none; }
-
-  .history-table tr:hover td { background: rgba(255,255,255,0.02); }
-
-  .badge {
+  .card-unit { font-size: 12px; color: #aaa; margin-top: 4px; }
+  .index-badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 2px;
-    font-size: 10px;
+    margin-top: 8px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 1px;
     text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
-  /* Footer */
+  /* PIE SECTION */
+  .section-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e8ecf0;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+  .chart-wrap {
+    width: 220px; height: 220px;
+    margin: 0 auto 16px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #444;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* REPLAY BUTTON */
+  .replay-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: #1a1a2e;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background 0.2s;
+  }
+  .replay-btn:hover { background: #2d2d4a; }
+  .replay-btn:disabled { background: #ccc; cursor: default; }
+  .play-icon { font-size: 18px; }
+
+  /* ANIMATION PANEL */
+  .anim-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e8ecf0;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .anim-panel.visible { display: block; }
+
+  .anim-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .anim-time {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a2e;
+    font-variant-numeric: tabular-nums;
+  }
+  .anim-label { font-size: 11px; color: #999; }
+
+  .progress-bar-bg {
+    height: 6px;
+    background: #e8ecf0;
+    border-radius: 3px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00c896, #0088ff);
+    border-radius: 3px;
+    transition: width 0.8s ease;
+    width: 0%;
+  }
+
+  .anim-chart-wrap {
+    width: 200px; height: 200px;
+    margin: 0 auto 14px;
+  }
+  .anim-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .anim-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  .ctrl-btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid #e8ecf0;
+    background: #f4f6f9;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #333;
+  }
+  .ctrl-btn:hover { background: #e8ecf0; }
+  .ctrl-btn.primary { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+
+  /* HISTORY */
+  .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .history-table th {
+    text-align: left; padding: 8px 10px;
+    font-size: 10px; text-transform: uppercase;
+    letter-spacing: 1px; color: #aaa;
+    border-bottom: 1px solid #e8ecf0;
+  }
+  .history-table td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; color: #333; }
+  .history-table tr:last-child td { border-bottom: none; }
+  .badge {
+    padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
   footer {
     text-align: center;
-    padding: 20px;
+    padding: 16px;
     font-size: 11px;
-    color: var(--muted);
-    font-family: var(--mono);
-    border-top: 1px solid var(--border);
+    color: #bbb;
   }
-
-  footer a { color: var(--accent); text-decoration: none; }
-
-  /* Error/loading states */
-  .loading {
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 13px;
-  }
-
-  .error-msg {
-    color: var(--accent3);
-    font-family: var(--mono);
-    font-size: 12px;
-    margin-top: 8px;
-  }
-
-  /* Responsive */
-  @media (max-width: 600px) {
-    main { padding: 16px; }
-    .stat-value { font-size: 28px; }
-    header { padding: 12px 16px; }
-  }
+  footer a { color: #00c896; text-decoration: none; }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <div class="logo-icon"></div>
+    <div class="logo-dot"></div>
     <div>
-      <h1>UK Grid</h1>
-      <p>National Grid Live Monitor</p>
+      <h1>UK National Grid</h1>
+      <p>Live generation monitor</p>
     </div>
   </div>
-  <div class="header-right">
-    <div class="live-badge">
-      <div class="live-dot"></div>
-      LIVE
-    </div>
-    <div id="last-update">Connecting...</div>
-  </div>
+  <div id="last-update">Connecting...</div>
 </header>
 
 <main>
 
-  <!-- Top Stats -->
+  <!-- Stat cards -->
   <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Carbon Intensity</div>
-      <div class="stat-value" id="intensity-val">--</div>
-      <div class="stat-unit">g CO₂/kWh</div>
-      <div id="intensity-index" class="intensity-badge" style="background:#1a2a1a;color:#aaa;">—</div>
+    <div class="card">
+      <div class="card-label">Carbon Intensity</div>
+      <div class="card-value" id="intensity-val">--</div>
+      <div class="card-unit">g CO₂/kWh</div>
+      <div class="index-badge" id="intensity-badge" style="background:#eee;color:#999">—</div>
     </div>
-    <div class="stat-card amber">
-      <div class="stat-label">Forecast (30 min)</div>
-      <div class="stat-value" id="forecast-val">--</div>
-      <div class="stat-unit">g CO₂/kWh</div>
-      <div class="stat-sub" id="forecast-period">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Renewable %</div>
-      <div class="stat-value" id="renewable-pct">--</div>
-      <div class="stat-unit">% of mix</div>
-      <div class="stat-sub" id="renewable-types">—</div>
-    </div>
-    <div class="stat-card red">
-      <div class="stat-label">Fossil Fuel %</div>
-      <div class="stat-value" id="fossil-pct">--</div>
-      <div class="stat-unit">% of mix</div>
-      <div class="stat-sub" id="fossil-types">—</div>
+    <div class="card">
+      <div class="card-label">Renewables</div>
+      <div class="card-value" id="renew-val">--</div>
+      <div class="card-unit">% of current mix</div>
+      <div class="card-unit" id="renew-types" style="margin-top:6px;font-size:11px;color:#666;">—</div>
     </div>
   </div>
 
-  <!-- Generation Mix -->
-  <div class="section-title">Generation Mix</div>
-  <div class="gen-grid" id="gen-grid">
-    <div class="gen-card"><div class="gen-name">Loading...</div></div>
+  <!-- Live pie chart -->
+  <div class="section-card">
+    <div class="section-title">⚡ Live Generation Mix</div>
+    <div class="chart-wrap">
+      <canvas id="livePie"></canvas>
+    </div>
+    <div class="legend" id="live-legend"></div>
   </div>
 
-  <!-- 24hr History -->
-  <div class="section-title">24-Hour History</div>
-  <div class="history-table">
-    <table>
+  <!-- 24hr Replay button -->
+  <button class="replay-btn" id="replay-btn" onclick="startReplay()">
+    <span class="play-icon">▶</span> Play 24-Hour Dawn to Dawn Replay
+  </button>
+
+  <!-- Animation panel -->
+  <div class="anim-panel" id="anim-panel">
+    <div class="anim-header">
+      <div>
+        <div class="anim-label">Replaying previous 24 hours</div>
+        <div class="anim-time" id="anim-time">00:00</div>
+      </div>
+      <div style="text-align:right">
+        <div class="anim-label">Frame</div>
+        <div style="font-size:18px;font-weight:700;color:#999" id="anim-frame">0 / 0</div>
+      </div>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar" id="anim-progress"></div>
+    </div>
+    <div class="anim-chart-wrap">
+      <canvas id="animPie"></canvas>
+    </div>
+    <div class="anim-legend" id="anim-legend"></div>
+    <div class="anim-controls">
+      <button class="ctrl-btn" onclick="stopReplay()">■ Stop</button>
+      <button class="ctrl-btn primary" onclick="startReplay()">↺ Restart</button>
+    </div>
+  </div>
+
+  <!-- 24hr history -->
+  <div class="section-card">
+    <div class="section-title">📋 24-Hour Intensity Log</div>
+    <table class="history-table">
       <thead>
         <tr>
           <th>Time (UTC)</th>
           <th>Actual g/kWh</th>
-          <th>Forecast g/kWh</th>
+          <th>Forecast</th>
           <th>Index</th>
         </tr>
       </thead>
       <tbody id="history-body">
-        <tr><td colspan="4" class="loading" style="padding:20px 16px;">Loading history...</td></tr>
+        <tr><td colspan="4" style="color:#bbb;padding:16px 10px;">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -416,187 +328,217 @@
 </main>
 
 <footer>
-  Data: <a href="https://carbonintensity.org.uk" target="_blank">api.carbonintensity.org.uk</a>
-  — Auto-refreshes every 5 minutes —
-  <span id="refresh-countdown"></span>
+  Data: <a href="https://carbonintensity.org.uk" target="_blank">api.carbonintensity.org.uk</a> — refreshes every 5 min
 </footer>
 
 <script>
-  // ─── Config ───────────────────────────────────────────────────
-  const BASE = 'https://api.carbonintensity.org.uk';
-  const REFRESH_SEC = 300; // 5 minutes
+// ── Colours ────────────────────────────────────────────────────
+const FUEL_COLORS = {
+  wind:    '#00ccff',
+  solar:   '#ffcc00',
+  nuclear: '#cc33ff',
+  gas:     '#ff6600',
+  coal:    '#888888',
+  hydro:   '#3366ff',
+  biomass: '#66bb44',
+  imports: '#ff99cc',
+  other:   '#aaaaaa',
+  storage: '#aa44ff',
+};
 
-  // ─── Colour helpers ───────────────────────────────────────────
-  const INDEX_COLOURS = {
-    'very low':  { bg: '#0a2a1a', text: '#00e5a0' },
-    'low':       { bg: '#0e2a10', text: '#4caf50' },
-    'moderate':  { bg: '#2a2200', text: '#f0a500' },
-    'high':      { bg: '#2a1400', text: '#ff7043' },
-    'very high': { bg: '#2a0a0a', text: '#e05252' },
-  };
+const INDEX_STYLES = {
+  'very low':  { bg: '#e6fff5', text: '#00a067' },
+  'low':       { bg: '#eafff0', text: '#2d9e3f' },
+  'moderate':  { bg: '#fff9e6', text: '#c07a00' },
+  'high':      { bg: '#fff3e6', text: '#d95700' },
+  'very high': { bg: '#ffe6e6', text: '#cc2200' },
+};
 
-  const GEN_COLOURS = {
-    gas:      '#ff7043',
-    coal:     '#795548',
-    nuclear:  '#9c27b0',
-    wind:     '#29b6f6',
-    hydro:    '#1565c0',
-    imports:  '#607d8b',
-    biomass:  '#66bb6a',
-    other:    '#78909c',
-    solar:    '#ffd54f',
-    storage:  '#ab47bc',
-  };
+function fuelColor(fuel) {
+  return FUEL_COLORS[fuel.toLowerCase()] || FUEL_COLORS.other;
+}
 
-  function intensityColour(index) {
-    return INDEX_COLOURS[index?.toLowerCase()] || { bg: '#1a2a1a', text: '#aaa' };
-  }
+// ── Charts ─────────────────────────────────────────────────────
+let liveChart = null;
+let animChart = null;
 
-  function genColour(fuel) {
-    const key = fuel.toLowerCase().replace(/[^a-z]/g, '');
-    for (const [k, v] of Object.entries(GEN_COLOURS)) {
-      if (key.includes(k)) return v;
+function makeChart(canvasId) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: ['Loading'],
+      datasets: [{ data: [1], backgroundColor: ['#eee'], borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed.toFixed(1)}%`
+        }
+      }}
     }
-    return '#607d8b';
-  }
+  });
+}
 
-  // ─── Fetch helpers ────────────────────────────────────────────
-  async function apiFetch(path) {
-    const res = await fetch(BASE + path, {
-      headers: { Accept: 'application/json' }
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  }
+function updateChart(chart, mix, legendId) {
+  const sorted = [...mix].sort((a,b) => b.perc - a.perc);
+  chart.data.labels   = sorted.map(g => g.fuel.charAt(0).toUpperCase() + g.fuel.slice(1));
+  chart.data.datasets[0].data            = sorted.map(g => g.perc);
+  chart.data.datasets[0].backgroundColor = sorted.map(g => fuelColor(g.fuel));
+  chart.update();
 
-  // ─── Update intensity + forecast ──────────────────────────────
-  async function updateIntensity() {
-    const data = await apiFetch('/intensity');
-    const d = data.data[0];
-    const actual = d.intensity.actual ?? d.intensity.forecast ?? '--';
-    const forecast = d.intensity.forecast ?? '--';
-    const index = d.intensity.index ?? '';
+  const legendEl = document.getElementById(legendId);
+  legendEl.innerHTML = sorted
+    .filter(g => g.perc >= 0.5)
+    .map(g => `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${fuelColor(g.fuel)}"></div>
+        ${g.fuel.charAt(0).toUpperCase()+g.fuel.slice(1)} ${g.perc.toFixed(1)}%
+      </div>`).join('');
+}
 
+// ── API helpers ────────────────────────────────────────────────
+async function api(path) {
+  const r = await fetch('https://api.carbonintensity.org.uk' + path, { headers: { Accept: 'application/json' } });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+// ── Live dashboard ─────────────────────────────────────────────
+async function refreshLive() {
+  try {
+    const [intData, genData, histData] = await Promise.all([
+      api('/intensity'),
+      api('/generation'),
+      api('/intensity/date/' + new Date().toISOString().slice(0,10))
+    ]);
+
+    // Intensity card
+    const intObj = intData.data[0].intensity;
+    const actual = intObj.actual ?? intObj.forecast ?? '--';
+    const index  = (intObj.index || '').toLowerCase();
     document.getElementById('intensity-val').textContent = actual;
-    document.getElementById('forecast-val').textContent = forecast;
-
-    const from = d.from ? new Date(d.from).toUTCString().slice(17, 22) : '--';
-    const to   = d.to   ? new Date(d.to).toUTCString().slice(17, 22) : '--';
-    document.getElementById('forecast-period').textContent = `Period: ${from}–${to} UTC`;
-
-    const badge = document.getElementById('intensity-index');
-    const c = intensityColour(index);
-    badge.style.background = c.bg;
-    badge.style.color = c.text;
+    const style = INDEX_STYLES[index] || { bg: '#eee', text: '#999' };
+    const badge = document.getElementById('intensity-badge');
     badge.textContent = index || '—';
-  }
+    badge.style.background = style.bg;
+    badge.style.color = style.text;
 
-  // ─── Update generation mix ────────────────────────────────────
-  async function updateGenMix() {
-    const data = await apiFetch('/generation');
-    const generationMix = data.data.generationmix;
+    // Generation mix
+    const mix = genData.data.generationmix;
+    if (!liveChart) liveChart = makeChart('livePie');
+    updateChart(liveChart, mix, 'live-legend');
 
-    // Sort by % desc
-    const sorted = [...generationMix].sort((a, b) => b.perc - a.perc);
-
-    // Work out renewables vs fossil
-    const renewableFuels = ['wind', 'solar', 'hydro', 'biomass', 'nuclear'];
-    const fossilFuels    = ['gas', 'coal', 'oil'];
-
-    let renewPct = 0, fossilPct = 0;
-    const renewNames = [], fossilNames = [];
-
-    for (const g of generationMix) {
-      const key = g.fuel.toLowerCase();
-      if (renewableFuels.some(f => key.includes(f))) {
+    // Renewables card
+    const renewFuels = ['wind','solar','hydro','biomass','nuclear'];
+    let renewPct = 0; const renewNames = [];
+    mix.forEach(g => {
+      if (renewFuels.includes(g.fuel.toLowerCase())) {
         renewPct += g.perc;
         if (g.perc > 1) renewNames.push(g.fuel);
       }
-      if (fossilFuels.some(f => key.includes(f))) {
-        fossilPct += g.perc;
-        if (g.perc > 0.5) fossilNames.push(g.fuel);
-      }
-    }
+    });
+    document.getElementById('renew-val').textContent = renewPct.toFixed(1);
+    document.getElementById('renew-types').textContent = renewNames.join(', ') || '—';
 
-    document.getElementById('renewable-pct').textContent = renewPct.toFixed(1);
-    document.getElementById('renewable-types').textContent = renewNames.join(', ') || '—';
-    document.getElementById('fossil-pct').textContent = fossilPct.toFixed(1);
-    document.getElementById('fossil-types').textContent = fossilNames.join(', ') || '—';
-
-    // Render gen cards
-    const grid = document.getElementById('gen-grid');
-    grid.innerHTML = sorted.map(g => {
-      const colour = genColour(g.fuel);
-      return `
-        <div class="gen-card">
-          <div class="gen-name">${g.fuel}</div>
-          <div class="gen-pct">${g.perc.toFixed(1)}<span style="font-size:14px;color:var(--muted)">%</span></div>
-          <div class="gen-bar-bg">
-            <div class="gen-bar" style="width:${g.perc}%;background:${colour}"></div>
-          </div>
-        </div>`;
+    // History table
+    const rows = [...histData.data].reverse();
+    document.getElementById('history-body').innerHTML = rows.map(r => {
+      const t = new Date(r.from).toUTCString().slice(17,22);
+      const a = r.intensity.actual ?? '—';
+      const f = r.intensity.forecast ?? '—';
+      const ix = (r.intensity.index || '').toLowerCase();
+      const s = INDEX_STYLES[ix] || { bg:'#eee', text:'#999' };
+      return `<tr>
+        <td>${t}</td><td>${a}</td><td>${f}</td>
+        <td><span class="badge" style="background:${s.bg};color:${s.text}">${ix||'—'}</span></td>
+      </tr>`;
     }).join('');
+
+    document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    document.getElementById('last-update').textContent = 'Error: ' + e.message;
+    console.error(e);
+  }
+}
+
+// ── 24hr REPLAY ────────────────────────────────────────────────
+let replayTimer  = null;
+let replayFrames = [];
+let replayIndex  = 0;
+
+async function startReplay() {
+  stopReplay();
+
+  const btn = document.getElementById('replay-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading 24h data...';
+
+  try {
+    // Fetch last 24 hours of generation mix data
+    const now  = new Date();
+    const from = new Date(now - 24 * 60 * 60 * 1000);
+    const toStr   = now.toISOString().slice(0,16);
+    const fromStr = from.toISOString().slice(0,16);
+
+    const data = await api(`/generation/${fromStr}/${toStr}`);
+    replayFrames = data.data;
+
+    if (!replayFrames.length) throw new Error('No data returned');
+
+    // Show panel
+    document.getElementById('anim-panel').classList.add('visible');
+    if (!animChart) animChart = makeChart('animPie');
+
+    replayIndex = 0;
+    btn.disabled = false;
+    btn.innerHTML = '<span class="play-icon">▶</span> Play 24-Hour Dawn to Dawn Replay';
+
+    playNextFrame();
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="play-icon">▶</span> Play 24-Hour Dawn to Dawn Replay';
+    alert('Could not load replay data: ' + e.message);
+  }
+}
+
+function playNextFrame() {
+  if (replayIndex >= replayFrames.length) {
+    // Done
+    document.getElementById('anim-time').textContent = 'Done ✓';
+    return;
   }
 
-  // ─── Update 24hr history ──────────────────────────────────────
-  async function updateHistory() {
-    // Get today's date in YYYY-MM-DD
-    const today = new Date().toISOString().slice(0, 10);
-    const data = await apiFetch(`/intensity/date/${today}`);
-    const rows = data.data.slice().reverse(); // newest first
+  const frame = replayFrames[replayIndex];
+  const total = replayFrames.length;
+  const pct   = ((replayIndex + 1) / total) * 100;
 
-    const tbody = document.getElementById('history-body');
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="loading" style="padding:16px;">No data yet for today.</td></tr>';
-      return;
-    }
+  // Time label
+  const t = new Date(frame.from);
+  const hh = String(t.getUTCHours()).padStart(2,'0');
+  const mm = String(t.getUTCMinutes()).padStart(2,'0');
+  document.getElementById('anim-time').textContent = hh + ':' + mm + ' UTC';
+  document.getElementById('anim-frame').textContent = (replayIndex+1) + ' / ' + total;
+  document.getElementById('anim-progress').style.width = pct + '%';
 
-    tbody.innerHTML = rows.map(r => {
-      const time = new Date(r.from).toUTCString().slice(17, 22);
-      const actual   = r.intensity.actual   ?? '—';
-      const forecast = r.intensity.forecast ?? '—';
-      const index    = r.intensity.index    ?? '—';
-      const c = intensityColour(index);
-      return `
-        <tr>
-          <td>${time}</td>
-          <td>${actual}</td>
-          <td>${forecast}</td>
-          <td><span class="badge" style="background:${c.bg};color:${c.text}">${index}</span></td>
-        </tr>`;
-    }).join('');
-  }
+  updateChart(animChart, frame.generationmix, 'anim-legend');
 
-  // ─── Countdown ticker ─────────────────────────────────────────
-  let secondsLeft = REFRESH_SEC;
-  function tickCountdown() {
-    const el = document.getElementById('refresh-countdown');
-    if (el) el.textContent = `Next refresh in ${secondsLeft}s`;
-    secondsLeft--;
-    if (secondsLeft < 0) secondsLeft = REFRESH_SEC;
-  }
+  replayIndex++;
+  // 1 second per frame (48 frames = 48s for full 24h in 30-min slots)
+  // Speed it up: ~500ms per frame so 48 frames ≈ 24 seconds
+  replayTimer = setTimeout(playNextFrame, 500);
+}
 
-  // ─── Main refresh ─────────────────────────────────────────────
-  async function refresh() {
-    secondsLeft = REFRESH_SEC;
-    try {
-      await Promise.all([
-        updateIntensity(),
-        updateGenMix(),
-        updateHistory()
-      ]);
-      const now = new Date().toUTCString().slice(17, 25);
-      document.getElementById('last-update').textContent = `Updated ${now} UTC`;
-    } catch (err) {
-      console.error('Refresh error:', err);
-      document.getElementById('last-update').textContent = `Error: ${err.message}`;
-    }
-  }
+function stopReplay() {
+  if (replayTimer) { clearTimeout(replayTimer); replayTimer = null; }
+}
 
-  // ─── Boot ─────────────────────────────────────────────────────
-  refresh();
-  setInterval(refresh, REFRESH_SEC * 1000);
-  setInterval(tickCountdown, 1000);
+// ── Boot ───────────────────────────────────────────────────────
+refreshLive();
+setInterval(refreshLive, 300000);
 </script>
 </body>
 </html>
