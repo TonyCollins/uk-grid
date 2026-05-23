@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -105,7 +106,7 @@
             document.getElementById('carbon-val').innerText = currentIntensity + " gCO₂/kWh";
             
             // 2. Extract energy types array for our pie chart mapping
-            const mixArray = genData.data.generationmix;
+            const mixArray = genData.data[0].generationmix;
             const labels = [];
             const values = [];
             const colors = [];
