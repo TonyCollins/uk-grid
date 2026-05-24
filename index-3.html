@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UK National Grid — Live Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+header {
+  background: #fff; border-bottom: 2px solid #e0e4ea;
+  padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.live-dot { width: 10px; height: 10px; background: #22bb44; border-radius: 50%; animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.logo h1 { font-size: 17px; font-weight: 700; }
+.logo p  { font-size: 11px; color: #888; }
+#header-date { font-size: 12px; color: #888; text-align: right; }
+#header-intensity { font-size: 13px; font-weight: 700; }
+
+main { max-width: 600px; margin: 0 auto; padding: 16px; }
+
+.tabs {
+  display: flex; background: #fff; border-radius: 10px;
+  padding: 4px; margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.tab {
+  flex: 1; padding: 10px; text-align: center; font-size: 14px;
+  font-weight: 600; border-radius: 8px; cursor: pointer;
+  color: #888; border: none; background: none; transition: all .2s;
+}
+.tab.active { background: #1a1a2e; color: #fff; }
+
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+.stat-card {
+  background: #fff; border-radius: 10px; padding: 14px 10px; text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 6px; }
+.stat-value { font-size: 22px; font-weight: 700; color: #1a1a2e; line-height: 1; }
+.stat-unit  { font-size: 10px; color: #aaa; margin-top: 3px; }
+
+.donut-card {
+  background: #fff; border-radius: 12px; padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 16px;
+}
+.donut-wrap { position: relative; width: 260px; height: 260px; margin: 0 auto 16px; }
+.donut-centre {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  text-align: center; pointer-events: none;
+}
+.centre-label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
+.centre-main  { font-size: 30px; font-weight: 800; color: #1a1a2e; line-height: 1.1; }
+.centre-sub   { font-size: 12px; color: #888; margin-top: 2px; }
+
+.anim-bar { display: none; margin-bottom: 12px; }
+.anim-bar.visible { display: block; }
+.anim-time-label { font-size: 12px; color: #888; text-align: center; margin-bottom: 6px; }
+.prog-bg { height: 5px; background: #e8ecf0; border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: linear-gradient(90deg,#22bb44,#1155cc); border-radius: 3px; width: 0; transition: width .4s; }
+
+.legend-section { margin-bottom: 16px; }
+
+/* ── Data table ─────────────────────────────────── */
+.dt { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+.dt-h { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: #bbb;
+        padding: 6px 4px 4px; font-weight: 600; border-bottom: 1px solid #eee; }
+.dt-h.dt-pct-h { text-align: right; padding-right: 2px; }
+.dt-row { border-bottom: 1px solid #f4f5f8; }
+.dt-row:last-child { border-bottom: none; }
+.dt-ic { background: #fafbfd; }
+.dt-sw { width: 18px; padding: 5px 4px 5px 0; }
+.dt-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: middle; }
+.dt-name { padding: 5px 6px 5px 0; white-space: nowrap; color: #333; }
+.dt-bar-cell { width: 100%; padding: 5px 8px 5px 0; }
+.dt-track { height: 6px; background: #eef0f4; border-radius: 4px; overflow: hidden; }
+.dt-fill  { height: 100%; border-radius: 4px; transition: width .35s ease; }
+.dt-pct { font-weight: 700; color: #1a1a2e; white-space: nowrap; padding-right: 2px; text-align: right; }
+.dt-sym { font-size: 10px; color: #999; font-weight: 400; }
+.ic-tag {
+  font-size: 9px; font-weight: 700; letter-spacing: .4px;
+  background: #eef0ff; color: #557; padding: 1px 5px;
+  border-radius: 3px; margin-left: 4px; vertical-align: middle;
+}
+
+.intercon-card {
+  background: #fff; border-radius: 12px; padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 16px;
+}
+.intercon-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 12px; }
+.intercon-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;
+}
+.intercon-row:last-child { border-bottom: none; }
+.intercon-swatch { width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; flex-shrink: 0; border: 1.5px dashed #aaa; }
+.intercon-name { flex: 1; font-weight: 600; color: #333; }
+.intercon-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; letter-spacing: .5px; margin-left: 8px;
+}
+.intercon-flow { font-weight: 700; margin-left: 12px; min-width: 50px; text-align: right; }
+.clean   { background: #e6fff5; color: #00a067; }
+.dirty   { background: #ffe6e6; color: #cc2200; }
+.mixed   { background: #e6f0ff; color: #1155cc; }
+.flow-in  { color: #22bb44; }
+.flow-out { color: #cc2200; }
+
+footer { text-align: center; padding: 16px; font-size: 11px; color: #bbb; }
+footer a { color: #22bb44; text-decoration: none; }
+.scroll-hint { text-align: center; font-size: 12px; color: #aaa; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="live-dot"></div>
+    <div>
+      <h1>UK National Grid</h1>
+      <p id="header-date">Loading...</p>
+    </div>
+  </div>
+  <div>
+    <div id="header-intensity" style="color:#22bb44">-- g/kWh</div>
+    <div style="font-size:11px;color:#aaa;text-align:right" id="intensity-index">—</div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('live')">⚡ Live</button>
+    <button class="tab" onclick="switchTab('day')">Day</button>
+    <button class="tab" onclick="switchTab('week')">Week</button>
+    <button class="tab" onclick="switchTab('year')">Year</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Emissions</div>
+      <div class="stat-value" id="stat-emissions">--</div>
+      <div class="stat-unit">g CO₂/kWh</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🟢 Clean</div>
+      <div class="stat-value" id="stat-clean">--</div>
+      <div class="stat-unit">% of mix</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🟠 Fossil</div>
+      <div class="stat-value" id="stat-fossil">--</div>
+      <div class="stat-unit">% of mix</div>
+    </div>
+  </div>
+
+  <div class="donut-card" id="donut-section">
+    <p class="scroll-hint" id="scroll-hint">↓ Scroll down to watch the last 24hrs animate</p>
+    <div class="anim-bar" id="anim-bar">
+      <div class="anim-time-label" id="anim-time-label">Loading replay...</div>
+      <div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div>
+    </div>
+    <div class="donut-wrap">
+      <canvas id="donutChart"></canvas>
+      <div class="donut-centre">
+        <div class="centre-label" id="centre-label">LIVE</div>
+        <div class="centre-main" id="centre-main">--</div>
+        <div class="centre-sub"  id="centre-sub">% clean</div>
+      </div>
+    </div>
+    <div class="legend-section" id="legend-section"></div>
+  </div>
+
+  <div class="intercon-card">
+    <div class="intercon-title">🔌 Interconnectors — Import / Export</div>
+    <div id="intercon-body">
+      <div class="intercon-row">
+        <span class="intercon-name">Loading…</span>
+        <span class="intercon-flow" style="color:#aaa">—</span>
+      </div>
+    </div>
+    <p style="font-size:11px;color:#bbb;margin-top:10px;line-height:1.5">
+      Coloured dots match the fuel group each interconnector counts toward in the donut.
+      Positive (+) = UK importing. Negative (−) = UK exporting.
+    </p>
+  </div>
+</main>
+
+<footer>
+  Data: <a href="https://carbonintensity.org.uk" target="_blank">api.carbonintensity.org.uk</a>
+  &amp; <a href="https://data.elexon.co.uk" target="_blank">Elexon BMRS</a>
+  — refreshes every 5 min
+</footer>
+
+<script>
+// ─── FUEL ORDER — Biomass/Gas/Coal at top so they appear NE on the donut ────
+// fossil sources first → wind+solar grow clockwise below them
+const FUEL_ORDER = [
+  'biomass',
+  'gas', 'coal', 'ic_netherlands',  // fossil ICs adjacent to gas/coal
+  'wind', 'solar',
+  'ic_norway', 'ic_ireland',        // clean ICs adjacent to wind/solar
+  'nuclear', 'hydro',
+  'ic_france', 'ic_belgium',        // nuclear ICs adjacent to nuclear
+  'other', 'storage'
+];
+
+// UK sources: their canonical colors
+// IC sources: pale tints of their UK fuel-equivalent color
+const FUEL_COLORS = {
+  wind:            '#22bb44',
+  solar:           '#ffdd00',
+  nuclear:         '#1155cc',
+  hydro:           '#00bbaa',
+  biomass:         '#cc2200',
+  gas:             '#ff6600',
+  coal:            '#333333',
+  other:           '#aaaaaa',
+  storage:         '#9933cc',
+  ic_norway:       '#22bb44',   // same green as wind — white border divides
+  ic_ireland:      '#22bb44',   // same green as wind — white border divides
+  ic_france:       '#1155cc',   // same blue as nuclear — white border divides
+  ic_belgium:      '#1155cc',   // same blue as nuclear — white border divides
+  ic_netherlands:  '#ff6600',   // same orange as gas — white border divides
+};
+
+const FUEL_LABELS = {
+  wind:           'Wind',
+  solar:          'Solar',
+  nuclear:        'Nuclear',
+  hydro:          'Hydro',
+  biomass:        'Biomass',
+  gas:            'Gas',
+  coal:           'Coal',
+  other:          'Other',
+  storage:        'Storage',
+  ic_norway:      '🇳🇴 Norway (NSL)',
+  ic_ireland:     '🇮🇪 Ireland',
+  ic_france:      '🇫🇷 France (IFA)',
+  ic_belgium:     '🇧🇪 Belgium (Nemo)',
+  ic_netherlands: '🇳🇱 Netherlands',
+};
+
+// ─── GROUPS — ordered to match FUEL_ORDER arcs on the inner ring ─────────────
+const GROUPS = [
+  {
+    name:  '🔴 Biomass',
+    fuels: ['biomass'],
+    color: '#cc2200',
+  },
+  {
+    name:  '🟠 Fossil',
+    fuels: ['gas','coal','ic_netherlands'],
+    color: '#ff6600',
+  },
+  {
+    name:  '🟢 Clean',
+    fuels: ['wind','solar','ic_norway','ic_ireland'],
+    color: '#22bb44',
+  },
+  {
+    name:  '🔵 Mixed / Debated',
+    fuels: ['nuclear','hydro','ic_france','ic_belgium'],
+    color: '#1155cc',
+  },
+  {
+    name:  '⬜ Other',
+    fuels: ['other','storage'],
+    color: '#888888',
+  },
+];
+
+// IC definitions — which Elexon keys map to which IC fuel id
+const IC_DEFS = [
+  { id:'ic_norway',       keys:['intnsl']                     },
+  { id:'ic_ireland',      keys:['intew','intirl']              },
+  { id:'ic_france',       keys:['intfr','intifa2','intelec']   },
+  { id:'ic_belgium',      keys:['intnem']                      },
+  { id:'ic_netherlands',  keys:['intned']                      },
+];
+
+// Interconnector display rows (for the bottom card)
+const INTERCONNECTORS = [
+  { name:'🇫🇷 France (IFA + IFA2)', key:['intfr','intifa2','intelec'], badge:'clean', label:'CLEAN ☢️',  icId:'ic_france'       },
+  { name:'🇳🇴 Norway (NSL)',         key:['intnsl'],                    badge:'clean', label:'CLEAN 💧',  icId:'ic_norway'       },
+  { name:'🇧🇪 Belgium (Nemo)',       key:['intnem'],                    badge:'mixed', label:'MIXED',     icId:'ic_belgium'      },
+  { name:'🇮🇪 Ireland (EWIC)',       key:['intew'],                     badge:'mixed', label:'MIXED',     icId:'ic_ireland'      },
+  { name:'🇮🇪 Ireland (Moyle)',      key:['intirl'],                    badge:'mixed', label:'MIXED',     icId:'ic_ireland'      },
+  { name:'🇳🇱 Netherlands (BritNed)',key:['intned'],                    badge:'dirty', label:'DIRTY 🔥',  icId:'ic_netherlands'  },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let chart       = null;
+let currentTab  = 'live';
+let animFrames  = [];
+let animIndex   = 0;
+let animTimer   = null;
+let animPlaying = false;
+let currentMix  = [];
+// Live MW per IC (positive = importing into UK)
+let icMW = { ic_norway:0, ic_ireland:0, ic_france:0, ic_belgium:0, ic_netherlands:0 };
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function api(path) {
+  const r = await fetch('https://api.carbonintensity.org.uk' + path, { headers:{ Accept:'application/json' }});
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+// ─── DISTRIBUTE IMPORTS% AMONG ICs ───────────────────────────────────────────
+// Takes the total "imports" % from carbon intensity API and splits it
+// proportionally among the live IC MW flows (positive = UK importing).
+function distributeImports(importsPct) {
+  const result = {};
+  const flows = IC_DEFS.map(ic => ({ id:ic.id, mw: Math.max(0, icMW[ic.id] || 0) }));
+  const totalMW = flows.reduce((a,b) => a + b.mw, 0);
+  IC_DEFS.forEach(ic => {
+    const mw = Math.max(0, icMW[ic.id] || 0);
+    result[ic.id] = totalMW > 0 ? (mw / totalMW) * importsPct : importsPct / IC_DEFS.length;
+  });
+  return result;
+}
+
+// ─── AVERAGE MIX ──────────────────────────────────────────────────────────────
+function averageMix(frames) {
+  const totals = {}, count = frames.length;
+  if (!count) return [];
+  frames.forEach(f => {
+    (f.generationmix || f).forEach(g => {
+      totals[g.fuel] = (totals[g.fuel] || 0) + g.perc;
+    });
+  });
+  return Object.keys(totals).map(fuel => ({ fuel, perc: Math.round((totals[fuel]||0)/count*10)/10 }));
+}
+
+// ─── CHART INIT ───────────────────────────────────────────────────────────────
+function initChart() {
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: FUEL_ORDER.map(f => FUEL_LABELS[f]),
+      datasets: [
+        // Inner ring: groups
+        {
+          data: GROUPS.map(() => 1),
+          backgroundColor: GROUPS.map(g => g.color),
+          borderWidth: 3,
+          borderColor: '#fff',
+          weight: 0.4,
+        },
+        // Outer ring: individual fuels + IC slices
+        {
+          data: FUEL_ORDER.map(() => 1),
+          backgroundColor: FUEL_ORDER.map(f => FUEL_COLORS[f]),
+          borderWidth: 2.5,
+          borderColor: '#fff',
+          weight: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) {
+                const g = GROUPS[ctx.dataIndex];
+                return ` ${g.name}: ${ctx.parsed.toFixed(1)}%`;
+              }
+              const fuel = FUEL_ORDER[ctx.dataIndex];
+              const isIC = fuel.startsWith('ic_');
+              const prefix = isIC ? ' ↳ IC ' : ' ';
+              return `${prefix}${FUEL_LABELS[fuel]}: ${ctx.parsed.toFixed(1)}%`;
+            }
+          }
+        }
+      },
+      animation: { duration: 400 },
+    }
+  });
+}
+
+// ─── UPDATE DONUT ─────────────────────────────────────────────────────────────
+function updateDonut(mix, centreLabel, animate) {
+  // Extract total imports % from API
+  const importsEntry = mix.find(m => m.fuel.toLowerCase() === 'imports');
+  const importsPct   = importsEntry ? Math.max(0, importsEntry.perc) : 0;
+
+  // Distribute imports among IC fuel slots
+  const icPcts = distributeImports(importsPct);
+
+  // Build ordered data array
+  const data = FUEL_ORDER.map(fuel => {
+    if (icPcts[fuel] !== undefined) return { fuel, perc: icPcts[fuel] };
+    const found = mix.find(m => m.fuel.toLowerCase() === fuel);
+    return { fuel, perc: found ? Math.max(found.perc, 0) : 0 };
+  });
+
+  // Outer ring
+  chart.data.datasets[1].data            = data.map(d => d.perc || 0.01);
+  chart.data.datasets[1].backgroundColor = data.map(d =>
+    d.perc >= 0.1 ? FUEL_COLORS[d.fuel] : 'rgba(200,200,200,0.12)'
+  );
+
+  // Inner ring — sum fuels per group
+  const groupData = GROUPS.map(g => {
+    const sum = g.fuels.reduce((acc, f) => {
+      const d = data.find(x => x.fuel === f);
+      return acc + (d ? d.perc : 0);
+    }, 0);
+    return { ...g, perc: sum };
+  });
+  chart.data.datasets[0].data            = groupData.map(g => g.perc || 0.01);
+  chart.data.datasets[0].backgroundColor = groupData.map(g =>
+    g.perc >= 0.5 ? g.color : 'rgba(200,200,200,0.1)'
+  );
+
+  chart.options.animation.duration = animate ? 350 : 0;
+  chart.update();
+
+  // Centre text — groups reordered: [0]=biomass [1]=fossil [2]=clean [3]=mixed [4]=other
+  const cleanPct  = groupData[2].perc;
+  const fossilPct = groupData[1].perc;
+  document.getElementById('centre-label').textContent = centreLabel;
+  document.getElementById('centre-main').textContent  = cleanPct.toFixed(1) + '%';
+  document.getElementById('centre-sub').textContent   = 'clean energy';
+
+  document.getElementById('stat-clean').textContent  = cleanPct.toFixed(1);
+  document.getElementById('stat-fossil').textContent = fossilPct.toFixed(1);
+
+  renderLegend(data, groupData);
+  currentMix = mix;
+}
+
+// ─── DATA TABLE ───────────────────────────────────────────────────────────────
+function renderLegend(fuelData, groupData) {
+  const el = document.getElementById('legend-section');
+
+  // Max % for scaling bars (wind is usually biggest)
+  const maxPct = Math.max(...fuelData.map(d => d.perc), 1);
+
+  // Build rows in FUEL_ORDER, skip near-zero
+  const rows = FUEL_ORDER
+    .map(fuel => {
+      const d   = fuelData.find(x => x.fuel === fuel);
+      const pct = d ? d.perc : 0;
+      const isIC = fuel.startsWith('ic_');
+      const grp  = GROUPS.find(g => g.fuels.includes(fuel));
+      return { fuel, pct, isIC, grpColor: grp ? grp.color : '#888' };
+    })
+    .filter(r => r.pct >= 0.05);
+
+  el.innerHTML = `
+    <table class="dt">
+      <thead>
+        <tr>
+          <th class="dt-h" colspan="2">Source</th>
+          <th class="dt-h dt-bar-h"></th>
+          <th class="dt-h dt-pct-h">%</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => {
+          const barW  = Math.round((r.pct / maxPct) * 100);
+          const alpha = r.isIC ? '0.55' : '1';
+          const swatchStyle = r.isIC
+            ? `background:${FUEL_COLORS[r.fuel]};opacity:.7;border:1.5px solid rgba(0,0,0,.15)`
+            : `background:${FUEL_COLORS[r.fuel]}`;
+          const nameStyle = r.isIC ? 'color:#666;padding-left:18px' : 'color:#222;font-weight:600';
+          return `<tr class="dt-row${r.isIC ? ' dt-ic' : ''}">
+            <td class="dt-sw"><span class="dt-swatch" style="${swatchStyle}"></span></td>
+            <td class="dt-name" style="${nameStyle}">
+              ${FUEL_LABELS[r.fuel]}${r.isIC ? ' <span class="ic-tag">IC</span>' : ''}
+            </td>
+            <td class="dt-bar-cell">
+              <div class="dt-track">
+                <div class="dt-fill" style="width:${barW}%;background:${FUEL_COLORS[r.fuel]};opacity:${alpha}"></div>
+              </div>
+            </td>
+            <td class="dt-pct">${r.pct.toFixed(1)}<span class="dt-sym">%</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ─── 24HR ANIMATION ───────────────────────────────────────────────────────────
+async function loadAnimFrames() {
+  const now  = new Date();
+  const from = new Date(now - 24*3600*1000);
+  const f = from.toISOString().slice(0,16);
+  const t = now.toISOString().slice(0,16);
+  const data = await api(`/generation/${f}/${t}`);
+  animFrames = data.data || [];
+}
+
+function startAnimation() {
+  if (animPlaying || currentTab !== 'live') return;
+  if (!animFrames.length) return;
+  animPlaying = true;
+  animIndex   = 0;
+  document.getElementById('anim-bar').classList.add('visible');
+  document.getElementById('scroll-hint').style.display = 'none';
+  playFrame();
+}
+
+function stopAnimation() {
+  animPlaying = false;
+  clearTimeout(animTimer);
+  document.getElementById('anim-bar').classList.remove('visible');
+}
+
+function playFrame() {
+  if (!animPlaying || currentTab !== 'live') return;
+  if (animIndex >= animFrames.length) animIndex = 0;
+
+  const frame = animFrames[animIndex];
+  const total = animFrames.length;
+  const pct   = ((animIndex+1)/total)*100;
+
+  const t  = new Date(frame.from);
+  const hh = String(t.getUTCHours()).padStart(2,'0');
+  const mm = String(t.getUTCMinutes()).padStart(2,'0');
+  document.getElementById('anim-time-label').textContent = `Replaying last 24hrs — ${hh}:${mm} UTC`;
+  document.getElementById('prog-fill').style.width = pct + '%';
+
+  updateDonut(frame.generationmix, hh+':'+mm, false);
+  animIndex++;
+  animTimer = setTimeout(playFrame, 500);
+}
+
+// ─── INTERSECTION OBSERVER ────────────────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting && currentTab === 'live' && !animPlaying && animFrames.length) {
+      startAnimation();
+    }
+  });
+}, { threshold: 0.6 });
+
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+async function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['live','day','week','year'][i] === tab);
+  });
+  stopAnimation();
+
+  if (tab === 'live') {
+    document.getElementById('scroll-hint').style.display = 'block';
+    await refreshLive();
+    if (animFrames.length) startAnimation();
+    return;
+  }
+
+  const hours = { day:24, week:168, year:720 }[tab];
+  const label = { day:'DAY AVG', week:'WEEK AVG', year:'30-DAY AVG' }[tab];
+  try {
+    const now  = new Date();
+    const from = new Date(now - hours*3600*1000);
+    const f = from.toISOString().slice(0,16);
+    const t = now.toISOString().slice(0,16);
+    const data = await api(`/generation/${f}/${t}`);
+    const mix  = averageMix(data.data.map(d => d.generationmix));
+    updateDonut(mix, label, true);
+  } catch(e) { console.error(e); }
+}
+
+// ─── LIVE REFRESH ─────────────────────────────────────────────────────────────
+async function refreshLive() {
+  try {
+    const [intData, genData] = await Promise.all([
+      api('/intensity'),
+      api('/generation')
+    ]);
+
+    const intObj = intData.data[0].intensity;
+    const actual = intObj.actual ?? intObj.forecast ?? '--';
+    const index  = (intObj.index||'').toLowerCase();
+    document.getElementById('stat-emissions').textContent  = actual;
+    document.getElementById('header-intensity').textContent = actual + ' g/kWh';
+    document.getElementById('intensity-index').textContent  = index;
+
+    const iColors = {'very low':'#22bb44','low':'#66bb44','moderate':'#ff9900','high':'#ff6600','very high':'#cc2200'};
+    document.getElementById('header-intensity').style.color = iColors[index] || '#888';
+
+    updateDonut(genData.data.generationmix, 'LIVE', true);
+
+    const now = new Date();
+    document.getElementById('header-date').textContent =
+      now.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'long', year:'numeric' });
+
+  } catch(e) { console.error('Live refresh error:', e); }
+}
+
+// ─── INTERCONNECTORS ──────────────────────────────────────────────────────────
+async function loadInterconnectors() {
+  const body = document.getElementById('intercon-body');
+  try {
+    const now  = new Date();
+    const from = new Date(now - 2*3600*1000);
+    const res  = await fetch(
+      `https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELINST?from=${from.toISOString()}&to=${now.toISOString()}&format=json`
+    );
+    if (!res.ok) throw new Error('Elexon error');
+    const json = await res.json();
+    const items = json.data || [];
+
+    // Latest record per fuel key
+    const latest = {};
+    items.forEach(item => {
+      const key = (item.psrType||item.fuelType||'').toLowerCase().replace(/\s/g,'');
+      if (!latest[key] || new Date(item.publishTime) > new Date(latest[key].publishTime)) {
+        latest[key] = item;
+      }
+    });
+
+    // Update icMW globals from Elexon data
+    IC_DEFS.forEach(ic => {
+      let total = 0;
+      ic.keys.forEach(k => {
+        const r = latest[k];
+        if (r) total += (r.quantity || r.generation || 0);
+      });
+      icMW[ic.id] = total;
+    });
+
+    // Re-render donut now we have real IC proportions
+    if (currentMix.length) updateDonut(currentMix, document.getElementById('centre-label').textContent, false);
+
+    // Build interconnector card rows
+    body.innerHTML = INTERCONNECTORS.map(ic => {
+      let totalMW = null;
+      ic.key.forEach(k => {
+        const r = latest[k];
+        if (r) totalMW = (totalMW||0) + (r.quantity||r.generation||0);
+      });
+      const gw        = totalMW !== null ? (totalMW/1000).toFixed(2) : null;
+      const flowClass = gw !== null ? (parseFloat(gw) >= 0 ? 'flow-in' : 'flow-out') : '';
+      const flowText  = gw !== null ? (parseFloat(gw) >= 0 ? `+${gw} GW` : `${gw} GW`) : '—';
+      return `<div class="intercon-row">
+        <span class="intercon-swatch" style="background:${FUEL_COLORS[ic.icId]}"></span>
+        <span class="intercon-name">${ic.name}</span>
+        <span class="intercon-badge ${ic.badge}">${ic.label}</span>
+        <span class="intercon-flow ${flowClass}">${flowText}</span>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    // Fallback — static rows, no MW data
+    body.innerHTML = INTERCONNECTORS.map(ic => `
+      <div class="intercon-row">
+        <span class="intercon-swatch" style="background:${FUEL_COLORS[ic.icId]}"></span>
+        <span class="intercon-name">${ic.name}</span>
+        <span class="intercon-badge ${ic.badge}">${ic.label}</span>
+        <span class="intercon-flow" style="color:#bbb">— GW</span>
+      </div>`).join('');
+  }
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+(async () => {
+  initChart();
+  observer.observe(document.getElementById('donut-section'));
+
+  await refreshLive();
+  await loadAnimFrames();
+  await loadInterconnectors();
+
+  setInterval(async () => {
+    if (currentTab === 'live') {
+      stopAnimation();
+      await refreshLive();
+      await loadAnimFrames();
+      startAnimation();
+    }
+    await loadInterconnectors();
+  }, 300000);
+})();
+</script>
+</body>
+</html>
