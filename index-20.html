@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MWU Wallet — Mine Free. Exit Fair.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:      #0a0a0c;
+    --surface: #111116;
+    --border:  #1e1e28;
+    --accent:  #7c5cfc;
+    --accent2: #c084fc;
+    --gold:    #d4a843;
+    --danger:  #e05252;
+    --success: #4caf82;
+    --text:    #e8e8f0;
+    --muted:   #6b6b82;
+    --mono:    'Space Mono', monospace;
+    --sans:    'Inter', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* NAV */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .logo { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; letter-spacing: 0.05em; }
+  .logo span { color: var(--accent); }
+  nav .nav-links { display: flex; gap: 28px; align-items: center; }
+  nav a { font-size: 0.8rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  nav a:hover, nav a.active { color: var(--text); }
+  .btn-launch { background: var(--accent); color: #fff; border: none; padding: 9px 20px; font-family: var(--mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: background 0.2s; }
+  .btn-launch:hover { background: #6a4ee0; }
+
+  /* PRICE TICKER */
+  .price-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 6px 32px; display: flex; align-items: center; gap: 20px; font-family: var(--mono); font-size: 0.72rem; }
+  .price-bar .p-label { color: var(--muted); }
+  .price-bar .p-val { color: var(--success); font-weight: 700; }
+  .price-bar .p-change { color: var(--muted); }
+  .price-bar .p-change.up { color: var(--success); }
+  .price-bar .p-change.down { color: var(--danger); }
+
+  /* SCREENS */
+  .screen { display: none; flex: 1; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* HOME */
+  #screen-home { align-items: center; justify-content: center; padding: 60px 24px; text-align: center; }
+  .home-eyebrow { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; }
+  .home-title { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 600; line-height: 1.15; max-width: 620px; margin-bottom: 20px; }
+  .home-title em { font-style: normal; color: var(--accent2); }
+  .home-sub { font-size: 1rem; color: var(--muted); max-width: 480px; line-height: 1.7; margin-bottom: 40px; }
+  .home-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .btn-primary { background: var(--accent); color: #fff; border: none; padding: 14px 28px; font-family: var(--mono); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: background 0.2s; }
+  .btn-primary:hover { background: #6a4ee0; }
+  .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 14px 28px; font-family: var(--mono); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: border-color 0.2s; }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .home-badge { margin-top: 60px; display: inline-flex; gap: 32px; padding: 16px 32px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); flex-wrap: wrap; justify-content: center; }
+  .badge-item { text-align: center; }
+  .badge-item .val { font-family: var(--mono); font-size: 1.3rem; font-weight: 700; color: var(--success); }
+  .badge-item .lbl { font-size: 0.72rem; color: var(--text); letter-spacing: 0.02em; margin-top: 4px; max-width: 120px; line-height: 1.4; }
+
+  /* CARD */
+  .card-wrap { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 36px; width: 100%; max-width: 560px; }
+  .card-title { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .card-heading { font-size: 1.5rem; font-weight: 600; margin-bottom: 24px; }
+
+  /* WARNING */
+  .warning-box { background: rgba(212,168,67,0.08); border: 1px solid rgba(212,168,67,0.35); border-radius: 6px; padding: 14px 16px; margin-bottom: 28px; font-size: 0.85rem; line-height: 1.6; color: var(--gold); }
+  .warning-box strong { display: block; margin-bottom: 4px; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* MNEMONIC */
+  .mnemonic-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 28px; }
+  .word-cell { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 9px 12px; display: flex; align-items: center; gap: 8px; }
+  .word-num { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); min-width: 16px; }
+  .word-text { font-family: var(--mono); font-size: 0.85rem; color: var(--text); font-weight: 700; }
+
+  /* ADDRESS */
+  .address-box { background: var(--bg); border: 1px solid var(--accent); border-radius: 6px; padding: 14px 16px; margin-bottom: 24px; }
+  .address-label { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); }
+  .address-text { font-family: var(--mono); font-size: 0.8rem; color: var(--accent2); word-break: break-all; cursor: pointer; user-select: all; }
+  .address-link { margin-top: 6px; font-size: 0.72rem; color: var(--muted); text-decoration: none; display: block; }
+  .address-link:hover { color: var(--accent); }
+
+  /* CONFIRM */
+  .confirm-row { margin-bottom: 20px; }
+  .confirm-row label { display: block; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-family: var(--mono); }
+  .confirm-row input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 11px 14px; font-family: var(--mono); font-size: 0.85rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+  .confirm-row input:focus { border-color: var(--accent); }
+
+  /* RESTORE */
+  .restore-area { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 12px 14px; font-family: var(--mono); font-size: 0.82rem; color: var(--text); resize: vertical; min-height: 90px; outline: none; margin-bottom: 8px; transition: border-color 0.2s; }
+  .restore-area:focus { border-color: var(--accent); }
+  .restore-hint { font-size: 0.72rem; color: var(--muted); margin-bottom: 20px; }
+
+  /* WALLET DASHBOARD */
+  .wallet-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+  .wallet-balance-label { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); margin-bottom: 4px; }
+  .wallet-balance { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--text); }
+  .wallet-balance span { font-size: 1rem; color: var(--muted); margin-left: 6px; }
+  .wallet-usd { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+  .wallet-exit-fee { background: rgba(124,92,252,0.1); border: 1px solid rgba(124,92,252,0.3); border-radius: 6px; padding: 10px 14px; text-align: right; }
+  .wallet-exit-fee .ef-label { font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-family: var(--mono); }
+  .wallet-exit-fee .ef-val { font-family: var(--mono); font-size: 1rem; font-weight: 700; color: var(--accent2); margin-top: 2px; }
+  .wallet-addr-row { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .wallet-addr-row .addr-short { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+  .copy-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: all 0.2s; white-space: nowrap; }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .refresh-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 5px 10px; font-family: var(--mono); font-size: 0.68rem; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+  .refresh-btn:hover { border-color: var(--success); color: var(--success); }
+
+  /* TABS */
+  .wallet-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .wallet-tab { background: transparent; border: none; border-bottom: 2px solid transparent; padding: 8px 18px; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); cursor: pointer; transition: all 0.2s; margin-bottom: -1px; }
+  .wallet-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* FORMS */
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); }
+  .form-group input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 10px 13px; font-family: var(--mono); font-size: 0.82rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+  .form-group input:focus { border-color: var(--accent); }
+
+  /* FEE BOX */
+  .fee-breakdown { background: rgba(124,92,252,0.06); border: 1px solid rgba(124,92,252,0.2); border-radius: 5px; padding: 12px 13px; margin-bottom: 16px; font-size: 0.78rem; line-height: 1.8; }
+  .fee-breakdown .fee-row { display: flex; justify-content: space-between; color: var(--muted); }
+  .fee-breakdown .fee-row strong { color: var(--accent2); }
+  .fee-breakdown .fee-row.total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; color: var(--text); font-weight: 600; }
+  .fee-addr { font-size: 0.68rem; color: var(--muted); font-family: var(--mono); margin-top: 6px; word-break: break-all; }
+
+  /* TX HISTORY */
+  .tx-empty { text-align: center; padding: 32px; color: var(--muted); font-size: 0.85rem; }
+  .tx-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+  .tx-row:last-child { border-bottom: none; }
+  .tx-type { font-family: var(--mono); color: var(--muted); font-size: 0.72rem; letter-spacing: 0.08em; }
+  .tx-addr { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+  .tx-time { color: var(--muted); font-size: 0.68rem; margin-top: 2px; font-family: var(--mono); }
+  .tx-amount { font-family: var(--mono); font-weight: 700; text-align: right; }
+  .tx-amount.in { color: var(--success); }
+  .tx-amount.out { color: var(--danger); }
+  .tx-conf { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+  /* LOADING SPINNER */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STATUS */
+  .status-msg { font-size: 0.8rem; padding: 10px 13px; border-radius: 5px; margin-bottom: 16px; font-family: var(--mono); display: none; }
+  .status-msg.error { background: rgba(224,82,82,0.1); border: 1px solid rgba(224,82,82,0.3); color: var(--danger); display: block; }
+  .status-msg.success { background: rgba(76,175,130,0.1); border: 1px solid rgba(76,175,130,0.3); color: var(--success); display: block; }
+  .status-msg.info { background: rgba(124,92,252,0.08); border: 1px solid rgba(124,92,252,0.25); color: var(--accent2); display: block; }
+
+  /* LOCK */
+  .btn-lock { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 8px 16px; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-radius: 4px; margin-top: 24px; transition: all 0.2s; width: 100%; }
+  .btn-lock:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* MANIFESTO */
+  #screen-manifesto .card { max-width: 640px; }
+  .manifesto-body p { color: var(--muted); line-height: 1.8; margin-bottom: 16px; font-size: 0.95rem; }
+  .manifesto-body p strong { color: var(--text); }
+  .manifesto-body h3 { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin: 28px 0 12px; }
+
+  /* FOOTER */
+  footer { padding: 18px 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: var(--muted); font-family: var(--mono); flex-wrap: wrap; gap: 8px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 520px) {
+    nav { padding: 14px 16px; }
+    .price-bar { padding: 6px 16px; gap: 12px; }
+    .card { padding: 24px 18px; }
+    .mnemonic-grid { grid-template-columns: repeat(2, 1fr); }
+    .home-badge { flex-direction: column; gap: 16px; }
+    .wallet-header { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">MWU<span>WALLET</span></div>
+  <div class="nav-links">
+    <a href="#" onclick="showScreen('home')" id="nav-home" class="active">Home</a>
+    <a href="#" onclick="showScreen('manifesto')" id="nav-manifesto">Manifesto</a>
+    <button class="btn-launch" onclick="showScreen('setup')">Launch Wallet</button>
+  </div>
+</nav>
+
+<!-- LIVE PRICE BAR -->
+<div class="price-bar">
+  <span class="p-label">PRL/USD</span>
+  <span class="p-val" id="price-val">—</span>
+  <span class="p-change" id="price-change">loading…</span>
+</div>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;">
+    <div class="home-eyebrow">Pearl (PRL) · Community Wallet</div>
+    <h1 class="home-title">Mine Free.<br><em>Exit Fair.</em></h1>
+    <p class="home-sub">A non-custodial Pearl wallet built for miners. Your keys never leave your device. A flat 1 PRL exit fee funds the community, not a VC.</p>
+    <div class="home-actions">
+      <button class="btn-primary" onclick="showScreen('setup')">Create Wallet</button>
+      <button class="btn-secondary" onclick="showScreen('restore')">Restore Wallet</button>
+    </div>
+    <div class="home-badge">
+      <div class="badge-item"><div class="val">✓</div><div class="lbl">Keys never leave your device</div></div>
+      <div class="badge-item"><div class="val">✓</div><div class="lbl">Flat 1 PRL community fee</div></div>
+      <div class="badge-item"><div class="val">✓</div><div class="lbl">Live balance via pearlchain.live</div></div>
+      <div class="badge-item"><div class="val">✓</div><div class="lbl">Real on-chain broadcasts</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen">
+  <div class="card-wrap">
+    <div class="card">
+      <div class="card-title">New Wallet</div>
+      <div class="card-heading">Your Recovery Phrase</div>
+      <div class="warning-box">
+        <strong>⚠ Write these 12 words down now</strong>
+        Store offline — not in a screenshot, not in a cloud note. Anyone with these words controls your PRL. There is no recovery without them.
+      </div>
+      <div class="mnemonic-grid" id="mnemonic-grid"></div>
+      <div class="address-box">
+        <div class="address-label">Your Pearl Address</div>
+        <div class="address-text" id="gen-address" onclick="copyEl('gen-address')">—</div>
+        <a class="address-link" id="gen-address-link" href="#" target="_blank">View on pearlchain.live →</a>
+      </div>
+      <div class="confirm-row">
+        <label>Type SAVED to confirm you've written it down</label>
+        <input type="text" id="confirm-input" placeholder="SAVED" oninput="checkConfirm()">
+      </div>
+      <div id="setup-status" class="status-msg"></div>
+      <button class="btn-primary" id="open-wallet-btn" onclick="openWallet()" style="width:100%;opacity:0.4;pointer-events:none;">I've Written It Down — Open Wallet</button>
+      <br><br>
+      <button class="btn-secondary" onclick="showScreen('home')" style="width:100%;">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESTORE -->
+<div id="screen-restore" class="screen">
+  <div class="card-wrap">
+    <div class="card">
+      <div class="card-title">Restore Wallet</div>
+      <div class="card-heading">Enter Recovery Phrase</div>
+      <textarea class="restore-area" id="restore-input" placeholder="Enter your 12 word recovery phrase, separated by spaces…"></textarea>
+      <div class="restore-hint">Paste or type all 12 words in order, separated by spaces.</div>
+      <div id="restore-status" class="status-msg"></div>
+      <button class="btn-primary" onclick="restoreWallet()" style="width:100%;">Restore Wallet</button>
+      <br><br>
+      <button class="btn-secondary" onclick="showScreen('home')" style="width:100%;">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- WALLET DASHBOARD -->
+<div id="screen-wallet" class="screen">
+  <div class="card-wrap">
+    <div class="card" style="max-width:640px;">
+      <div class="wallet-header">
+        <div>
+          <div class="wallet-balance-label">Balance</div>
+          <div class="wallet-balance" id="wallet-balance">—<span>PRL</span></div>
+          <div class="wallet-usd" id="wallet-usd">≈ $—</div>
+        </div>
+        <div class="wallet-exit-fee">
+          <div class="ef-label">Community Fee</div>
+          <div class="ef-val">Flat 1 PRL</div>
+        </div>
+      </div>
+      <div class="wallet-addr-row">
+        <div class="addr-short" id="wallet-addr-short"></div>
+        <button class="copy-btn" onclick="copyWalletAddress()">Copy Address</button>
+        <button class="refresh-btn" onclick="refreshBalance()" title="Refresh balance">⟳</button>
+      </div>
+      <div id="balance-status" class="status-msg"></div>
+
+      <div class="wallet-tabs">
+        <button class="wallet-tab active" onclick="switchTab('send',this)">Send</button>
+        <button class="wallet-tab" onclick="switchTab('receive',this)">Receive</button>
+        <button class="wallet-tab" onclick="switchTab('history',this)">History</button>
+      </div>
+
+      <!-- SEND TAB -->
+      <div id="tab-send" class="tab-panel active">
+        <div class="form-group">
+          <label>Recipient Address</label>
+          <input type="text" id="send-to" placeholder="prl1p…" oninput="updateFeeSummary()">
+        </div>
+        <div class="form-group">
+          <label>Amount (PRL)</label>
+          <input type="number" id="send-amount" placeholder="0.000000" step="0.000001" min="0" oninput="updateFeeSummary()">
+        </div>
+        <div class="fee-breakdown" id="fee-breakdown">
+          <div class="fee-row"><span>Amount to send</span><strong id="fb-amount">0.000000 PRL</strong></div>
+          <div class="fee-row"><span>Community fee (flat)</span><strong id="fb-fee">1.000000 PRL</strong></div>
+          <div class="fee-row total"><span>Total deducted</span><strong id="fb-total">1.000000 PRL</strong></div>
+          <div class="fee-addr">Fee → prl1pgjavzn7ul0cc22d7h58x9m2047rtvrma44ympxhans6lte3zwqrq3rlj5d</div>
+        </div>
+        <div id="send-status" class="status-msg"></div>
+        <button class="btn-primary" onclick="sendTx()" style="width:100%;">Sign &amp; Broadcast</button>
+      </div>
+
+      <!-- RECEIVE TAB -->
+      <div id="tab-receive" class="tab-panel">
+        <div class="address-box" style="margin-bottom:16px;">
+          <div class="address-label">Your Pearl Address</div>
+          <div class="address-text" id="receive-address" onclick="copyWalletAddress()"></div>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.7;">Tap the address to copy. Transactions appear in History once confirmed on-chain.</p>
+        <br>
+        <a id="receive-explorer-link" href="#" target="_blank" style="font-family:var(--mono);font-size:0.75rem;color:var(--accent);text-decoration:none;">View on pearlchain.live →</a>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="tab-history" class="tab-panel">
+        <div class="tx-empty" id="tx-empty">No transactions yet. Pull from chain…</div>
+        <div id="tx-list"></div>
+        <button class="btn-secondary" onclick="loadTxHistory()" style="width:100%;margin-top:16px;padding:10px;">Refresh History</button>
+      </div>
+
+      <button class="btn-lock" onclick="lockWallet()">🔒 Lock &amp; Clear Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANIFESTO -->
+<div id="screen-manifesto" class="screen">
+  <div class="card-wrap">
+    <div class="card">
+      <div class="card-title">Manifesto</div>
+      <div class="card-heading">Mine Free. Exit Fair.</div>
+      <div class="manifesto-body">
+        <h3>Why this exists</h3>
+        <p>Most wallets are built for traders. This one is built for miners — people who run hardware, pay electricity bills, and contribute real work to securing a network. You deserve a wallet that respects that.</p>
+        <h3>Non-custodial, always</h3>
+        <p><strong>Your keys never leave your device.</strong> This wallet generates your seed phrase locally using BIP-39 — the same standard used across the entire crypto industry. No server ever sees your private key.</p>
+        <h3>The exit fee</h3>
+        <p>When you send PRL out of this wallet, a flat <strong>1 PRL community fee</strong> is deducted and routed on-chain to the MWU community pool. You can see exactly where it goes before every transaction — transparent, fixed, fair.</p>
+        <h3>Open source</h3>
+        <p>The code for this wallet is public on GitHub. Read it, audit it, fork it. Trust is built through transparency, not promises.</p>
+        <h3>Live balance &amp; price</h3>
+        <p>Your balance is fetched live from the pearlchain.live API. PRL/USD price updates automatically. No accounts, no tracking.</p>
+      </div>
+      <br>
+      <button class="btn-secondary" onclick="showScreen('home')" style="width:100%;">Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>MWU WALLET · BUILD 0.2.0</span>
+  <span>Non-custodial · BIP39/BIP86 · Pearl L1 · pearlchain.live API</span>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  LIBRARIES
+  noble/secp256k1 v2 — real secp256k1 point multiplication
+  noble/hashes      — SHA-256, SHA-512, HMAC, RIPEMD-160
+═══════════════════════════════════════════════════════════════════ -->
+<script type="module">
+
+// ── Import real crypto libraries from CDN ──────────────────────────
+import * as secp from 'https://esm.run/@noble/secp256k1@2';
+import { sha256 } from 'https://esm.run/@noble/hashes@1/sha256';
+import { sha512 } from 'https://esm.run/@noble/hashes@1/sha512';
+import { hmac } from 'https://esm.run/@noble/hashes@1/hmac';
+import { ripemd160 } from 'https://esm.run/@noble/hashes@1/ripemd160';
+import { pbkdf2 } from 'https://esm.run/@noble/hashes@1/pbkdf2';
+
+// Make secp available to hmac
+secp.utils.hmacSha256Sync = (k, ...m) => hmac(sha256, k, secp.utils.concatBytes(...m));
+
+// ══════════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════════════════════════
+const FEE_GRAINS   = 1_00000000n;          // flat 1 PRL in grains
+const FEE_ADDRESS  = 'prl1pgjavzn7ul0cc22d7h58x9m2047rtvrma44ympxhans6lte3zwqrq3rlj5d';
+const API          = 'https://pearlchain.live';
+const COIN_TYPE    = 808276;
+const GRAINS       = 100_000_000n;
+
+// ── Globals ────────────────────────────────────────────────────────
+let walletState = { mnemonic: null, address: null, privKey: null, balance: 0n, utxos: [], transactions: [] };
+let prlPrice    = 0;
+
+// ══════════════════════════════════════════════════════════════════
+//  BIP-39 WORDLIST
+// ══════════════════════════════════════════════════════════════════
+const BIP39_WORDLIST = "abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost alone alpha already also alter always amateur amazing among amount amused analyst anchor ancient anger angle angry animal ankle announce annual another answer antenna antique anxiety any apart apology appear apple approve april arch arctic area arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset assist assume asthma athlete atom attack attend attitude attract auction audit august aunt author auto autumn average avocado avoid awake aware away awesome awful awkward axis baby bachelor bacon badge bag balance balcony ball bamboo banana banner bar barely bargain barrel base basic basket battle beach bean beauty because become beef before begin behave behind believe below belt bench benefit best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade blame blanket blast bleak bless blind blood blossom blouse blue blur blush board boat body boil bomb bone book boost border boring borrow boss bottom bounce box boy bracket brain brand brave breeze brick bridge brief bright bring brisk broccoli broken bronze broom brother brown brush bubble buddy budget buffalo build bulb bulk bullet bundle bunker burden burger burst bus business busy butter buyer buzz cabbage cabin cable cactus cage cake call calm camera camp canal cancel candy cannon canvas canyon capable capital captain car carbon card cargo carpet carry cart case cash casino castle casual cat catalog catch category cattle cause caution cave ceiling celery cement census chair chaos chapter charge chase chat cheap check cheese chef cherry chest chicken chief child chimney choice choose chronic chuckle chunk cigar cinnamon circle citizen city civil claim clap clarify claw clay clean clerk clever click client cliff climb clinic clip clock clog close cloth cloud clown club clump cluster clutch coach coast coconut code coffee coil coin collect color column combine come comfort comic common company concert conduct confirm congress connect consider control convince cook cool copper copy coral core corn correct cost cotton couch country couple course cousin cover coyote crack cradle craft cram crane crash crater crawl crazy cream credit creek crew cricket crime crisp critic cross crouch crowd crucial cruel cruise crumble crunch crush cry crystal cube culture cup cupboard curious current curtain curve cushion custom cute cycle dad damage damp dance danger daring dash daughter dawn day deal debate debris decade december decide decline decorate decrease deer defense define defy degree delay deliver demand demise denial dentist deny depart depend deposit depth deputy derive describe desert design desk despair destroy detail detect develop device devote diagram dial diamond diary dice diesel diet differ digital dignity dilemma dinner dinosaur direct dirt disagree discover disease dish dismiss disorder display distance divert divide divorce dizzy doctor document dog doll dolphin domain donate donkey donor door dose double dove draft dragon drama drastic draw dream dress drift drill drink drip drive drop drum dry duck dumb dune during dust dutch duty dwarf dynamic eager eagle early earn earth easily east easy echo ecology edge edit educate effort egg eight either elbow elder electric elegant element elephant elevator elite else embark embody embrace emerge emotion employ empower empty enable enact endless endorse enemy engage engine enhance enjoy enlist enough enrich enroll ensure enter entire entry envelope episode equal equip erase erosion erupt escape essay essence estate eternal ethics evidence evil evoke evolve exact example excess exchange excite exclude exercise exhaust exhibit exile exist exit exotic expand expire explain expose express extend extra eye fable face faculty fade faint faith fall false fame family famous fan fancy fantasy far fashion fat fatal father fatigue fault favorite feature february federal fee feed feel feet fellow felt fence festival fetch fever few fiber fiction field figure file film filter final find fine finger finish fire firm first fiscal fish fit fitness fix flag flame flash flat flavor flee flight flip float flock floor flower fluid flush fly foam focus fog foil follow food foot force forest forget fork fortune forum forward fossil foster found fox fragile frame frequent fresh friend fringe frog front frost frown frozen fruit fuel fun funny furnace fury future gadget gain galaxy gallery game gap garbage garden garlic garment gasp gate gather gauge gaze general genius genre gentle genuine gesture ghost giant gift giggle ginger giraffe girl give glad glance glare glass glide glimpse globe gloom glory glove glow glue goat goddess gold good goose gorilla gospel gossip govern gown grab grace grain grant grape grass gravity great green grid grief grit grocery group grow grunt guard guide guilt guitar gun gym habit hair half hamster hand happy harbor harsh harvest hat have hawk hazard head health heart heavy hedgehog height hello helmet help hen hero hidden high hill hint hip hire history hobby hockey hold hole holiday hollow home honey hood hope horn hospital host hour hover hub humble humor hundred hungry hunt hurdle hurry hurt husband hybrid ice icon ignore ill illegal image imitate immense immune impact impose improve impulse inbox income increase index indicate indoor industry infant inflict inform inhale inject inner innocent input inquiry insane insect inside inspire install intact interest into invest invite involve island isolate issue item ivory jacket jaguar jar jazz jealous jeans jelly jewel job join joke journey joy judge juice jump jungle junior junk just kangaroo keen keep ketchup key kick kid kingdom kiss kit kitchen kite kitten kiwi knee knife knock know lab ladder lady lake lamp language laptop large later laugh laundry lava law lawn lawsuit layer lazy leader learn leave lecture left leg legal legend leisure lemon lend length lens leopard lesson letter level liar liberty library license life lift light like limb limit link lion liquid list little live lizard load loan lobster local lock logic lonely long loop lottery loud lounge love loyal lucky luggage lumber lunar lunch luxury lyrics magic magnet maid main major make mammal mango mansion manual maple marble march margin marine market marriage mask master match material math matrix matter maximum maze meadow mean medal media melody melt member memory mention menu mercy merge merit merry mesh message metal method middle midnight milk million mimic mind minimum minor minute miracle miss misery miss mitten mix model modify mom monitor monkey monster month moon moral more morning mosquito mother motion motive mountain mouse move movie much muffin mule multiply muscle museum mushroom music must mutual myself mystery naive name napkin narrow nasty natural nature near neck need negative neglect neither nephew nerve nest network news next nice night noble noise nominee noodle normal notable note nothing notice novel now nuclear number nurse nut oak obey object oblige obscure obtain ocean october odor off offer office often oil okay old olive olympic omit once onion open orbit orchard order ordinary organ orient original orphan ostrich other outdoor outside oval over own oyster ozone pace pack paddle page pair palace palm panda panel panic panther paper parade parent park parrot party pass patch path patrol pause pave payment peace peanut peasant pelican pen penalty pencil people pepper perfect permit person pet phone photo phrase physical piano picnic piece pig pigeon pill pilot pink pioneer pipe pistol pitch pizza place planet plastic plate play please pledge pluck plug plunge poem poet point polar pole police pond pony popular portion position possible post potato pottery poverty powder power practice praise predict prefer prepare present pretty prevent price pride primary print priority prison private prize problem process produce profit program project promote proof property prosper protect proud provide public pudding pull pulp pulse pumpkin punch pupil puppy purchase purity purpose push put puzzle pyramid quality quantum quarter question quick quit quiz quote rabbit raccoon race rack radar radio rage rail rain raise rally ramp ranch random range rapid rare rate rather raven reach ready real reason rebel rebuild recall receive recipe record recycle reduce reflect reform refuse region regret regular reject relax release relief rely remain remember remind remove render renew rent reopen repair repeat replace report require rescue resemble resist resource response result retire retreat return reunion reveal review reward rhythm ribbon rice rich ride rifle right rigid ring riot ripple risk ritual rival river road roast robot robust rocket romance roof rookie room rose rotate rough round route royal rubber rude rug rule run runway rural sad saddle sadness safe sail salad salmon salon salt salute same sample sand satisfy satoshi sauce sausage save say scale scan scare scatter scene scheme scissors scorpion scout scrap screen script scrub search season seat second secret section security seed seek segment select sell seminar senior sense sentence series service session settle setup seven shadow shaft shallow share shed shell sheriff shield shift shine ship shiver shock shoe shoot shop short shoulder shove shrimp shrug shuffle shy sibling siege sight sign silent silk silly silver similar simple since sing siren sister situate six size ski skill skin skirt skull slab slam sleep slender slice slide slight slim slogan slot slow slush small smart smile smoke smooth snack snake snap sniff snow soap soccer social sock solar soldier solid solution solve someone song soon sorry soul sound soup source south space spare spatial spawn speak special speed sphere spice spider spike spin spirit split spoil sponsor spoon spray spread spring spy square squeeze squirrel stable stadium staff stage stairs stamp stand start state stay steak steel stem step stereo stick still sting stock stomach stone stop store story stove strategy street strike strong struggle student stuff stumble style subject submit subway success such sudden suffer sugar suggest suit summer sun sunny sunset super supply supreme sure surface surge surprise sustain swallow swamp swap swear sweet swift swim swing switch sword symbol symptom syrup table tackle tail talent tamper tank tape target task tattoo taxi teach team tell ten tenant tennis tent term test text thank that theme then theory there they thing this thought three thrive throw thumb thunder ticket tilt timber time tiny tip tired title toast tobacco today together toilet token tomato tomorrow tone tongue tonight tool tooth top topic topple torch tornado tortoise toss total tourist toward tower town toy track trade traffic tragic train transfer trap trash travel tray treat tree trend trial tribe trick trigger trim trip trophy trouble truck truly trumpet trust truth tube tuition tumble tuna tunnel turkey turn turtle twelve twenty twice twin twist two type typical ugly umbrella unable unaware uncle uncover under undo unfair unfold unhappy uniform unique universe unknown unlock until unusual unveil update upgrade uphold upon upper upset urban used useful useless usual utility vacant vacuum vague valid valley valve van vanish vapor various vast vault vehicle velvet vendor venture venue verb verify version very veteran viable vibrant vicious victory video view village vintage violin virtual virus visa visit visual vital vivid vocal voice void volcano volume vote voyage wage wagon wait walk wall walnut want warfare warm warrior wash wasp waste water wave way wealth weapon wear weasel web wedding weekend weird welcome well west wet what wheat wheel when where whip whisper wide width wife wild will win window wine wing wink winner winter wire wisdom wise wish witness wolf woman wonder wood wool word world worry worth wrap wreck wrestle wrist write wrong yard year yellow you young youth zebra zero zone zoo".split(" ");
+
+// ══════════════════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════════════════
+const hex = b => Array.from(b).map(x => x.toString(16).padStart(2,'0')).join('');
+const fromHex = s => Uint8Array.from(s.match(/.{2}/g).map(b => parseInt(b,16)));
+const toBigEndian32 = n => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0,n,false); return b; }
+const concat = (...a) => { const t = new Uint8Array(a.reduce((s,x)=>s+x.length,0)); let o=0; for(const x of a){t.set(x,o);o+=x.length;} return t; }
+
+// ══════════════════════════════════════════════════════════════════
+//  BIP-39: MNEMONIC → SEED
+// ══════════════════════════════════════════════════════════════════
+async function generateMnemonic() {
+  const entropy = crypto.getRandomValues(new Uint8Array(16)); // 128 bits → 12 words
+  let bits = Array.from(entropy).map(b=>b.toString(2).padStart(8,'0')).join('');
+  const cs = sha256(entropy)[0].toString(2).padStart(8,'0').slice(0,4);
+  const allBits = bits + cs;
+  return Array.from({length:12}, (_,i) => BIP39_WORDLIST[parseInt(allBits.slice(i*11,(i+1)*11),2)]);
+}
+
+function mnemonicToSeed(words, passphrase='') {
+  const enc = new TextEncoder();
+  return pbkdf2(sha512, enc.encode(words.join(' ')), enc.encode('mnemonic'+passphrase), {c:2048, dkLen:64});
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  BIP-32: HD KEY DERIVATION (real secp256k1)
+// ══════════════════════════════════════════════════════════════════
+function seedToMaster(seed) {
+  const I = hmac(sha512, new TextEncoder().encode('Bitcoin seed'), seed);
+  return { key: I.slice(0,32), chain: I.slice(32) };
+}
+
+const N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+
+function addScalars(a, b) {
+  const an = BigInt('0x'+hex(a)), bn = BigInt('0x'+hex(b));
+  const r = (an + bn) % N;
+  const h = r.toString(16).padStart(64,'0');
+  return fromHex(h);
+}
+
+function derivePrivHardened(parent, index) {
+  const data = concat(new Uint8Array([0x00]), parent.key, toBigEndian32(0x80000000 + index));
+  const I = hmac(sha512, parent.chain, data);
+  return { key: addScalars(I.slice(0,32), parent.key), chain: I.slice(32) };
+}
+
+function derivePrivNormal(parent, index) {
+  const pub = secp.getPublicKey(parent.key, true); // compressed
+  const data = concat(pub, toBigEndian32(index));
+  const I = hmac(sha512, parent.chain, data);
+  return { key: addScalars(I.slice(0,32), parent.key), chain: I.slice(32) };
+}
+
+// BIP-86 Taproot derivation: m/86'/808276'/0'/0/0
+function deriveWalletKey(seed) {
+  const master   = seedToMaster(seed);
+  const purpose  = derivePrivHardened(master, 86);
+  const coin     = derivePrivHardened(purpose, COIN_TYPE);
+  const account  = derivePrivHardened(coin, 0);
+  const change   = derivePrivNormal(account, 0);
+  const addrNode = derivePrivNormal(change, 0);
+  return addrNode.key;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  BIP-86 TAPROOT ADDRESS
+//  x-only pubkey → TapTweak → witness program → bech32m
+// ══════════════════════════════════════════════════════════════════
+function tapTweak(pubkey32) {
+  // Tagged hash: SHA256("TapTweak" || SHA256("TapTweak") || pubkey)
+  const tag = new TextEncoder().encode('TapTweak');
+  const tagHash = sha256(tag);
+  return sha256(concat(tagHash, tagHash, pubkey32));
+}
+
+function tweakedPubkey(privKey) {
+  const pub = secp.getPublicKey(privKey, true);
+  const xOnly = pub.slice(1); // 32 bytes, drop prefix
+  const tweak = tapTweak(xOnly);
+  // P + tweak*G
+  const tweakPoint = secp.ProjectivePoint.fromPrivateKey(tweak);
+  const basePoint  = secp.ProjectivePoint.fromHex(hex(pub));
+  const result     = basePoint.add(tweakPoint);
+  const resultPub  = result.toRawBytes(true);
+  return resultPub.slice(1); // x-only
+}
+
+// ── Bech32m ───────────────────────────────────────────────────────
+const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+const M = 0x2bc830a3;
+
+function polymod(v) {
+  const GEN = [0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];
+  let c=1;
+  for(const d of v){ const t=c>>25; c=((c&0x1ffffff)<<5)^d; for(let i=0;i<5;i++) if((t>>i)&1) c^=GEN[i]; }
+  return c;
+}
+function hrpExpand(hrp) {
+  return [...hrp].map(c=>c.charCodeAt(0)>>5).concat([0],...[...hrp].map(c=>c.charCodeAt(0)&31));
+}
+function convertbits(data,from,to,pad=true) {
+  let acc=0,bits=0; const ret=[],maxv=(1<<to)-1;
+  for(const v of data){ acc=(acc<<from)|v; bits+=from; while(bits>=to){bits-=to;ret.push((acc>>bits)&maxv);} }
+  if(pad&&bits>0) ret.push((acc<<(to-bits))&maxv);
+  return ret;
+}
+function bech32mEncode(hrp,witver,prog) {
+  const data=[witver,...convertbits(prog,8,5)];
+  const values=[...hrpExpand(hrp),...data,0,0,0,0,0,0];
+  const pm=polymod(values)^M;
+  const check=Array.from({length:6},(_,i)=>(pm>>(5*(5-i)))&31);
+  return hrp+'1'+[...data,...check].map(d=>CHARSET[d]).join('');
+}
+
+function deriveAddress(privKey) {
+  const prog = tweakedPubkey(privKey);
+  return bech32mEncode('prl', 1, prog);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TRANSACTION BUILDING & SIGNING (Taproot key-path spend)
+// ══════════════════════════════════════════════════════════════════
+
+function encodeVarInt(n) {
+  if(n<0xfd) return new Uint8Array([n]);
+  if(n<=0xffff){ const b=new Uint8Array(3); b[0]=0xfd; new DataView(b.buffer).setUint16(1,n,true); return b; }
+  const b=new Uint8Array(5); b[0]=0xfe; new DataView(b.buffer).setUint32(1,n,true); return b;
+}
+
+function encodeLEInt64(n) {
+  const b=new Uint8Array(8);
+  let v=BigInt(n);
+  for(let i=0;i<8;i++){ b[i]=Number(v&0xffn); v>>=8n; }
+  return b;
+}
+
+function encodeLEInt32(n) {
+  const b=new Uint8Array(4); new DataView(b.buffer).setUint32(0,n,true); return b;
+}
+
+// Taproot sighash (BIP-341)
+function taprootSighash(txData) {
+  // Simplified sighash for single-input key-path spend
+  // txData: { version, inputs:[{txid,vout,sequence}], outputs:[{script,value}], locktime, inputIdx, prevValue, prevScript }
+  const { version, inputs, outputs, locktime, inputIdx, prevValue } = txData;
+
+  const hashPrevouts = sha256(sha256(concat(...inputs.map(inp => {
+    const txidBytes = fromHex(inp.txid).reverse();
+    const voutBytes = encodeLEInt32(inp.vout);
+    return concat(txidBytes, voutBytes);
+  }))));
+
+  const hashAmounts = sha256(sha256(concat(...inputs.map(() => encodeLEInt64(prevValue)))));
+  const hashScriptPubkeys = sha256(sha256(concat(...inputs.map(() => {
+    // P2TR scriptPubKey: OP_1 <32-byte-tweaked-pubkey>
+    return new Uint8Array([0x22, 0x51, 0x20, ...txData.prevScriptPubkey]);
+  }))));
+  const hashSequences = sha256(sha256(concat(...inputs.map(inp => encodeLEInt32(inp.sequence || 0xfffffffd)))));
+  const hashOutputs = sha256(sha256(concat(...outputs.map(o => {
+    const valueBytes = encodeLEInt64(o.value);
+    const scriptLen = encodeVarInt(o.script.length);
+    return concat(valueBytes, scriptLen, o.script);
+  }))));
+
+  const tag = new TextEncoder().encode('TapSighash');
+  const tagHash = sha256(tag);
+
+  const sigMsg = concat(
+    tagHash, tagHash,
+    new Uint8Array([0x00]),  // sighash epoch
+    new Uint8Array([0x00]),  // SIGHASH_DEFAULT
+    encodeLEInt32(version),
+    encodeLEInt32(locktime),
+    hashPrevouts,
+    hashAmounts,
+    hashScriptPubkeys,
+    hashSequences,
+    hashOutputs,
+    new Uint8Array([0x00]),  // spend type (key path, no annex)
+    encodeLEInt32(inputIdx)
+  );
+
+  return sha256(sigMsg);
+}
+
+function p2trScript(xOnlyPubkey) {
+  return concat(new Uint8Array([0x51, 0x20]), xOnlyPubkey);
+}
+
+async function buildAndSignTx(privKey, utxos, recipientAddr, amountGrains, feeAddrScript) {
+  const totalIn = utxos.reduce((s,u)=>s+BigInt(u.value),0n);
+  const networkFee = 500n; // 500 grains (~0.000005 PRL) for tx miners
+  const communityFee = FEE_GRAINS;
+  const totalNeeded = amountGrains + communityFee + networkFee;
+
+  if(totalIn < totalNeeded) throw new Error(`Insufficient balance. Need ${Number(totalNeeded)/1e8} PRL, have ${Number(totalIn)/1e8} PRL`);
+
+  const change = totalIn - amountGrains - communityFee - networkFee;
+
+  // Decode recipient address to script
+  const recipientScript = decodeP2TRAddress(recipientAddr);
+  const myXOnly = tweakedPubkey(privKey);
+  const myScript = p2trScript(myXOnly);
+
+  const outputs = [
+    { value: amountGrains, script: recipientScript },
+    { value: communityFee, script: decodeP2TRAddress(FEE_ADDRESS) }
+  ];
+  if(change > 546n) outputs.push({ value: change, script: myScript });
+
+  const inputs = utxos.map(u => ({
+    txid: u.txid,
+    vout: u.vout,
+    sequence: 0xfffffffd
+  }));
+
+  // Build raw tx (SegWit v1 / Taproot)
+  const version = 2;
+  const locktime = 0;
+  const marker = 0x00;
+  const flag = 0x01;
+
+  // For each input, compute sighash and sign
+  const witnesses = [];
+  for(let i=0; i<inputs.length; i++) {
+    const sighash = taprootSighash({
+      version, inputs, outputs, locktime,
+      inputIdx: i,
+      prevValue: BigInt(utxos[i].value),
+      prevScriptPubkey: myXOnly
+    });
+
+    // Schnorr sign — noble/secp256k1 v2
+    const sig = await secp.schnorr.sign(sighash, privKey);
+    witnesses.push(sig);
+  }
+
+  // Serialize
+  const parts = [
+    encodeLEInt32(version),
+    new Uint8Array([marker, flag]),
+    encodeVarInt(inputs.length),
+    ...inputs.map(inp => concat(
+      fromHex(inp.txid).reverse(),
+      encodeLEInt32(inp.vout),
+      new Uint8Array([0x00]), // scriptSig empty for SegWit
+      encodeLEInt32(inp.sequence)
+    )),
+    encodeVarInt(outputs.length),
+    ...outputs.map(o => concat(
+      encodeLEInt64(o.value),
+      encodeVarInt(o.script.length),
+      o.script
+    )),
+    // Witness
+    ...witnesses.map(w => concat(
+      new Uint8Array([0x01]), // 1 item in witness stack
+      encodeVarInt(w.length),
+      w
+    )),
+    encodeLEInt32(locktime)
+  ];
+
+  return hex(concat(...parts));
+}
+
+// Decode bech32m P2TR address to scriptPubKey
+function decodeP2TRAddress(addr) {
+  // Strip HRP (prl1)
+  const sep = addr.lastIndexOf('1');
+  const data5 = [...addr.slice(sep+1)].map(c => CHARSET.indexOf(c));
+  // First element is witness version, rest is data+checksum (drop last 6 bytes checksum)
+  const prog5 = data5.slice(1, -6);
+  const prog8 = convertbits8(prog5, 5, 8, false);
+  return p2trScript(new Uint8Array(prog8));
+}
+
+function convertbits8(data, from, to, pad=true) {
+  let acc=0, bits=0; const ret=[], maxv=(1<<to)-1;
+  for(const v of data){ acc=(acc<<from)|v; bits+=from; while(bits>=to){bits-=to;ret.push((acc>>bits)&maxv);} }
+  if(pad&&bits>0) ret.push((acc<<(to-bits))&maxv);
+  return ret;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  API CALLS
+// ══════════════════════════════════════════════════════════════════
+async function fetchPrice() {
+  try {
+    const r = await fetch(`${API}/api/explorer/price`);
+    const d = await r.json();
+    prlPrice = d.price || 0;
+    const el = document.getElementById('price-val');
+    const ch = document.getElementById('price-change');
+    if(el) el.textContent = `$${prlPrice.toFixed(4)}`;
+    if(ch) {
+      const pct = (d.change24h||0).toFixed(2);
+      ch.textContent = `${pct > 0 ? '+':''}${pct}% 24h`;
+      ch.className = 'p-change ' + (pct >= 0 ? 'up' : 'down');
+    }
+    updateUsdValue();
+  } catch(e) {
+    const ch = document.getElementById('price-change');
+    if(ch) ch.textContent = 'price unavailable';
+  }
+}
+
+async function fetchBalance(addr) {
+  const statusEl = document.getElementById('balance-status');
+  if(statusEl){ statusEl.className='status-msg info'; statusEl.textContent='⟳ Fetching live balance…'; }
+  try {
+    const r = await fetch(`${API}/api/explorer/address/${addr}`);
+    const d = await r.json();
+    const grains = BigInt(d.balance || 0);
+    walletState.balance = grains;
+    const prl = Number(grains) / 1e8;
+    const balEl = document.getElementById('wallet-balance');
+    if(balEl) balEl.innerHTML = prl.toFixed(6) + ' <span>PRL</span>';
+    updateUsdValue();
+    if(statusEl){ statusEl.className='status-msg'; statusEl.style.display='none'; }
+  } catch(e) {
+    if(statusEl){ statusEl.className='status-msg error'; statusEl.textContent='Could not fetch balance — check connection.'; }
+  }
+}
+
+async function fetchUTXOs(addr) {
+  const r = await fetch(`${API}/api/explorer/utxos/${addr}`);
+  const d = await r.json();
+  walletState.utxos = d.utxos || [];
+  return walletState.utxos;
+}
+
+async function fetchTxHistory(addr) {
+  const r = await fetch(`${API}/api/explorer/address/${addr}`);
+  const d = await r.json();
+  return d.transactions || d.txHistory || [];
+}
+
+async function broadcastTx(hexStr) {
+  const r = await fetch(`${API}/api/explorer/broadcast`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hex: hexStr })
+  });
+  return await r.json();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════════════════
+window.showScreen = function(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  const nav = document.getElementById('nav-'+name);
+  if(nav) nav.classList.add('active');
+  if(name==='setup') generateNewWallet();
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  GENERATE NEW WALLET
+// ══════════════════════════════════════════════════════════════════
+async function generateNewWallet() {
+  const grid = document.getElementById('mnemonic-grid');
+  grid.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:12px;grid-column:1/-1;"><span class="spinner"></span>Generating secure phrase…</div>';
+
+  try {
+    const words = await generateMnemonic();
+    grid.innerHTML = '';
+    words.forEach((word,i) => {
+      const cell = document.createElement('div');
+      cell.className = 'word-cell';
+      cell.innerHTML = `<span class="word-num">${i+1}</span><span class="word-text">${word}</span>`;
+      grid.appendChild(cell);
+    });
+
+    const addrEl = document.getElementById('gen-address');
+    addrEl.textContent = 'Deriving address…';
+
+    const seed    = mnemonicToSeed(words);
+    const privKey = deriveWalletKey(seed);
+    const address = deriveAddress(privKey);
+
+    walletState.mnemonic = words;
+    walletState.privKey  = privKey;
+    walletState.address  = address;
+
+    addrEl.textContent = address;
+    const linkEl = document.getElementById('gen-address-link');
+    linkEl.href = `${API}/address/${address}`;
+
+    document.getElementById('confirm-input').value = '';
+    const btn = document.getElementById('open-wallet-btn');
+    btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none';
+
+  } catch(err) {
+    grid.innerHTML = `<div style="color:var(--danger);font-size:0.8rem;padding:12px;grid-column:1/-1;">Error: ${err.message}</div>`;
+    console.error(err);
+  }
+}
+
+window.checkConfirm = function() {
+  const val = document.getElementById('confirm-input').value.trim().toUpperCase();
+  const btn = document.getElementById('open-wallet-btn');
+  const ok = val === 'SAVED';
+  btn.style.opacity = ok ? '1' : '0.4';
+  btn.style.pointerEvents = ok ? 'auto' : 'none';
+};
+
+window.openWallet = function() {
+  if(!walletState.address) return;
+  loadWalletDashboard();
+  showScreen('wallet');
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  RESTORE WALLET
+// ══════════════════════════════════════════════════════════════════
+window.restoreWallet = async function() {
+  const input = document.getElementById('restore-input').value.trim().toLowerCase();
+  const words = input.split(/\s+/).filter(w=>w.length>0);
+  const statusEl = document.getElementById('restore-status');
+  statusEl.className='status-msg'; statusEl.style.display='none';
+
+  if(words.length!==12){ statusEl.className='status-msg error'; statusEl.textContent=`Need 12 words, got ${words.length}.`; return; }
+  const bad = words.filter(w=>!BIP39_WORDLIST.includes(w));
+  if(bad.length){ statusEl.className='status-msg error'; statusEl.textContent=`Unknown word(s): ${bad.slice(0,3).join(', ')}`; return; }
+
+  statusEl.className='status-msg info'; statusEl.textContent='Deriving keys from BIP-86 path m/86\'/808276\'/0\'/0/0…';
+
+  try {
+    const seed    = mnemonicToSeed(words);
+    const privKey = deriveWalletKey(seed);
+    const address = deriveAddress(privKey);
+
+    walletState.mnemonic = words;
+    walletState.privKey  = privKey;
+    walletState.address  = address;
+
+    loadWalletDashboard();
+    showScreen('wallet');
+  } catch(err) {
+    statusEl.className='status-msg error'; statusEl.textContent='Key derivation failed: '+err.message;
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  WALLET DASHBOARD
+// ══════════════════════════════════════════════════════════════════
+function loadWalletDashboard() {
+  const addr = walletState.address;
+  document.getElementById('wallet-addr-short').textContent = addr.slice(0,14)+'…'+addr.slice(-8);
+  document.getElementById('receive-address').textContent   = addr;
+  document.getElementById('receive-explorer-link').href    = `${API}/address/${addr}`;
+  fetchBalance(addr);
+}
+
+function updateUsdValue() {
+  const prl = Number(walletState.balance) / 1e8;
+  const usd = (prl * prlPrice).toFixed(2);
+  const el = document.getElementById('wallet-usd');
+  if(el) el.textContent = `≈ $${usd}`;
+}
+
+window.refreshBalance = function() { if(walletState.address) fetchBalance(walletState.address); };
+
+window.updateFeeSummary = function() {
+  const amt = parseFloat(document.getElementById('send-amount')?.value||0)||0;
+  document.getElementById('fb-amount').textContent  = amt.toFixed(6)+' PRL';
+  document.getElementById('fb-fee').textContent     = '1.000000 PRL';
+  document.getElementById('fb-total').textContent   = (amt+1).toFixed(6)+' PRL';
+};
+
+window.switchTab = function(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.wallet-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='history') loadTxHistory();
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  SEND TRANSACTION
+// ══════════════════════════════════════════════════════════════════
+window.sendTx = async function() {
+  const toAddr   = document.getElementById('send-to').value.trim();
+  const amount   = parseFloat(document.getElementById('send-amount').value);
+  const statusEl = document.getElementById('send-status');
+  statusEl.className='status-msg'; statusEl.style.display='none';
+
+  if(!toAddr.startsWith('prl1p')||toAddr.length<20){
+    statusEl.className='status-msg error'; statusEl.textContent='Invalid Pearl address — must start with prl1p'; return;
+  }
+  if(!amount||amount<=0){
+    statusEl.className='status-msg error'; statusEl.textContent='Enter a valid amount.'; return;
+  }
+  const amountGrains = BigInt(Math.round(amount*1e8));
+  const totalGrains  = amountGrains + FEE_GRAINS;
+  if(totalGrains > walletState.balance){
+    statusEl.className='status-msg error'; statusEl.textContent=`Insufficient balance. Need ${Number(totalGrains)/1e8} PRL (incl. 1 PRL fee).`; return;
+  }
+
+  statusEl.className='status-msg info'; statusEl.textContent='<span class="spinner"></span>Fetching UTXOs…';
+
+  try {
+    const utxos = await fetchUTXOs(walletState.address);
+    if(!utxos.length){ statusEl.className='status-msg error'; statusEl.textContent='No spendable UTXOs found.'; return; }
+
+    statusEl.textContent='Signing transaction…';
+    const rawHex = await buildAndSignTx(walletState.privKey, utxos, toAddr, amountGrains);
+
+    statusEl.textContent='Broadcasting to Pearl network…';
+    const result = await broadcastTx(rawHex);
+
+    if(result.txid){
+      statusEl.className='status-msg success';
+      statusEl.textContent=`✓ Broadcast! TXID: ${result.txid.slice(0,16)}…`;
+      document.getElementById('send-to').value='';
+      document.getElementById('send-amount').value='';
+      updateFeeSummary();
+      setTimeout(()=>fetchBalance(walletState.address), 5000);
+    } else {
+      statusEl.className='status-msg error';
+      statusEl.textContent='Broadcast failed: '+(result.error||'unknown error');
+    }
+  } catch(err) {
+    statusEl.className='status-msg error';
+    statusEl.textContent='Error: '+err.message;
+    console.error(err);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  TX HISTORY
+// ══════════════════════════════════════════════════════════════════
+window.loadTxHistory = async function() {
+  const empty = document.getElementById('tx-empty');
+  const list  = document.getElementById('tx-list');
+  empty.textContent = '⟳ Loading…';
+  list.innerHTML = '';
+
+  try {
+    const txs = await fetchTxHistory(walletState.address);
+    if(!txs.length){ empty.textContent='No transactions yet.'; return; }
+    empty.style.display='none';
+    list.innerHTML = txs.slice(0,30).map(tx => {
+      const isIn  = tx.direction==='in'||tx.type==='RECEIVE'||tx.received;
+      const amt   = (Number(tx.value||tx.amount||0)/1e8).toFixed(6);
+      const short = tx.counterparty ? tx.counterparty.slice(0,12)+'…'+tx.counterparty.slice(-6) : '';
+      return `<div class="tx-row">
+        <div>
+          <div class="tx-type">${isIn?'RECEIVE':'SEND'}</div>
+          <div class="tx-addr">${short}</div>
+          <div class="tx-time">${tx.time||tx.blockTime||''}</div>
+        </div>
+        <div>
+          <div class="tx-amount ${isIn?'in':'out'}">${isIn?'+':'-'}${amt} PRL</div>
+          <div class="tx-conf">${tx.confirmations||0} conf</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    empty.textContent='Could not load history.';
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════════════════════════════
+window.lockWallet = function() {
+  walletState = { mnemonic:null, address:null, privKey:null, balance:0n, utxos:[], transactions:[] };
+  showScreen('home');
+};
+
+window.copyEl = function(id) {
+  const t = document.getElementById(id)?.textContent;
+  if(t) navigator.clipboard.writeText(t).catch(()=>{});
+};
+
+window.copyWalletAddress = function() {
+  if(!walletState.address) return;
+  navigator.clipboard.writeText(walletState.address).catch(()=>{});
+  const btn = document.querySelector('.copy-btn');
+  if(btn){ btn.textContent='Copied!'; setTimeout(()=>btn.textContent='Copy Address',2000); }
+};
+
+// ── Boot ──────────────────────────────────────────────────────────
+fetchPrice();
+setInterval(fetchPrice, 60000); // refresh price every minute
+
+</script>
+</body>
+</html>
